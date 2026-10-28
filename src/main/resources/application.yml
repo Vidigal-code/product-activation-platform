@@ -1,0 +1,92 @@
+spring:
+  application:
+    name: product-activation-platform
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/activation}
+    username: ${DATABASE_USERNAME:activation}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL_SIZE:10}
+      connection-timeout: ${DATABASE_CONNECTION_TIMEOUT:3000}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
+  task:
+    scheduling:
+      shutdown:
+        await-termination: true
+        await-termination-period: ${SHUTDOWN_TIMEOUT:30s}
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:false}
+    disable-swagger-default-url: true
+    try-it-out-enabled: true
+    persist-authorization: false
+    operations-sorter: method
+  paths-to-match:
+    - /api/v1/requests
+    - /api/v1/requests/**
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+  tomcat:
+    connection-timeout: ${SERVER_CONNECTION_TIMEOUT:5s}
+management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        activation.provider.calls: true
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      group:
+        readiness:
+          include: readinessState,db
+activation:
+  provider:
+    base-url: ${PROVIDER_BASE_URL:http://localhost:8089}
+    activation-path: ${PROVIDER_ACTIVATION_PATH:/provider/v1/activate}
+    connect-timeout: ${PROVIDER_CONNECT_TIMEOUT:2s}
+    read-timeout: ${PROVIDER_READ_TIMEOUT:5s}
+    idempotency-supported: ${PROVIDER_IDEMPOTENCY_SUPPORTED:false}
+    token: ${PROVIDER_TOKEN:}
+  retry:
+    max-attempts: ${RETRY_MAX_ATTEMPTS:3}
+    initial-delay: ${RETRY_INITIAL_DELAY:1s}
+    max-delay: ${RETRY_MAX_DELAY:30s}
+  worker:
+    enabled: ${WORKER_ENABLED:true}
+    poll-interval: ${WORKER_POLL_INTERVAL:1s}
+    lease-duration: ${WORKER_LEASE_DURATION:30s}
+  security:
+    mode: ${SECURITY_MODE:jwt}
+    issuer-uri: ${JWT_ISSUER_URI:}
+    audience: ${JWT_AUDIENCE:product-activation-platform}
+logging:
+  level:
+    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: 'OFF'
+  pattern:
+    level: '%5p [correlationId=%X{correlationId:-}]'
