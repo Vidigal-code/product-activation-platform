@@ -112,7 +112,7 @@ Normal transitions are `PENDING → PROCESSING → COMPLETED/FAILED`. Retryable 
 | Timeout/connection ambiguity | Without provider idempotency, `FAILED` for reconciliation; with a verified idempotency contract, bounded retries |
 | Expired lease after worker failure | Without provider idempotency, stop uncertain work for reconciliation; with that contract, reclaim within the retry budget |
 
-Defaults are three attempts, 1-second initial delay, a 30-second backoff cap and a 30-second lease. A valid positive `Retry-After` is honored even beyond the backoff cap; malformed or negative values use normal backoff. Numeric values that exceed the supported scheduling range produce `FAILED` with `PROVIDER_RETRY_AFTER_UNSUPPORTED`, avoiding an early retry. Compose uses a 1-second connection timeout and a 2-second read timeout. The lease must exceed the maximum HTTP attempt duration plus the database update margin. See [architecture decisions](docs/adr/001-durable-activation.md).
+Defaults are three attempts, 1-second initial delay, a 30-second backoff cap and a 30-second lease. A valid positive `Retry-After` is honored even beyond the backoff cap; malformed or negative values use normal backoff. Numeric values that exceed the supported scheduling range produce `FAILED` with `PROVIDER_RETRY_AFTER_UNSUPPORTED`, avoiding an early retry. Compose uses a 1-second connection timeout and a 2-second read timeout. The lease must exceed the maximum HTTP attempt duration plus the database update margin. See [requirements and architecture decisions](docs/requirements.md).
 
 Retry jitter reduces calculated backoff randomly to 80–100% by default (`RETRY_JITTER_FACTOR=0.2`); zero disables it. `Retry-After` remains the minimum accepted delay. The Resilience4j circuit breaker observes a window of 20 calls, at least 10 calls and a 50% failure threshold; transient and uncertain failures count, while business rejections do not. It opens for 10 seconds, then permits two half-open probes. An open circuit avoids HTTP, returns work to `PENDING` with a persisted delay and restores its unused attempt budget. All limits are configurable through `CIRCUIT_BREAKER_*`; circuit state is local to each instance.
 
@@ -134,6 +134,8 @@ The mock requires `Idempotency-Key`. Its bounded request journal is for local di
 ### Swagger and automated Postman scenarios
 
 With Compose running, open [Swagger UI](http://localhost:8080/swagger-ui/index.html) or the [OpenAPI document](http://localhost:8080/v3/api-docs). Compose enables `API_DOCS_ENABLED=true` for the local demonstration; documentation is disabled by default outside it.
+
+In Swagger UI, choose an **Exemplo automático**. Selection starts the scenario immediately: the runner generates fresh identifiers, fills the body, follows the created request and checks the expected HTTP responses and terminal status. Progress and response JSON appear in the same panel. **Executar novamente** starts a fresh run; **Cancelar** stops local requests/polling but does not undo a request already persisted by the server. The native Swagger operations remain available for manual requests. The automatic panel is intended for the local demonstration and does not store credentials or tokens.
 
 Run all HTTP scenarios automatically, without copying request IDs:
 
@@ -165,7 +167,19 @@ Unit tests live under `src/test/unit/java` and cover policies, configuration, th
 
 Use `./mvnw test` for unit tests, `./mvnw -Dit.test='*IT' verify` for unit plus integration tests, `./mvnw -Dit.test='*E2E' verify` for unit plus end-to-end tests, and `./mvnw verify` for all layers. On Windows, replace `./mvnw` with `.\mvnw.cmd`.
 
-The [CI workflow](.github/workflows/ci.yml) runs on `main`, `dev` and pull requests: Java 21, Maven verification, Compose validation, Docker build, the automated Newman scenarios and report upload. Actions use verified commit hashes and minimum repository permissions. Local development proceeds on `dev`; validated changes are promoted to `main` with focused commits.
+With Node.js 22 or later, use the following commands to validate automatic Swagger scenarios and browser interaction:
+
+```sh
+npm ci
+npm run test:unit
+npx playwright install chromium
+docker compose up -d --wait
+npm run test:e2e
+```
+
+`test:unit` runs `node --test src/test/unit/javascript/*.test.cjs` independently of a backend. Browser tests use an isolated Chromium session against the running Compose application; screenshots and reports are saved under `target/swagger-e2e`. These Node dependencies are for development and CI only; the production image serves the scripts directly without a frontend build.
+
+The [CI workflow](.github/workflows/ci.yml) runs on `main`, `dev` and pull requests: Java 21, Node.js 22, Maven verification, JavaScript unit tests, Compose validation, Docker build, browser interaction, automated Newman scenarios and report upload. Actions use verified commit hashes and minimum repository permissions. Local development proceeds on `dev`; validated changes are promoted to `main` with focused commits.
 
 ### Security and configuration
 
@@ -338,7 +352,7 @@ O fluxo normal é `PENDING → PROCESSING → COMPLETED/FAILED`. Falhas repetív
 | Timeout/conexão com resultado incerto | Sem idempotência no provedor, `FAILED` para reconciliação; com contrato confirmado, repetição limitada |
 | Reserva vencida após falha do worker | Sem idempotência no provedor, interrompe trabalho incerto para reconciliação; com contrato, recupera dentro do limite de tentativas |
 
-Os padrões são três tentativas, intervalo inicial de 1 segundo, teto de backoff de 30 segundos e reserva de 30 segundos. Um `Retry-After` positivo válido é respeitado mesmo acima desse teto; valores malformados ou negativos utilizam o backoff normal. Valores numéricos que excedem o intervalo de agendamento suportado produzem `FAILED` com `PROVIDER_RETRY_AFTER_UNSUPPORTED`, evitando repetição antecipada. O Compose utiliza conexão de 1 segundo e leitura de 2 segundos. A reserva precisa exceder a duração máxima de uma chamada HTTP e a margem para atualizar o banco. Consulte as [decisões arquiteturais](docs/adr/001-durable-activation.md).
+Os padrões são três tentativas, intervalo inicial de 1 segundo, teto de backoff de 30 segundos e reserva de 30 segundos. Um `Retry-After` positivo válido é respeitado mesmo acima desse teto; valores malformados ou negativos utilizam o backoff normal. Valores numéricos que excedem o intervalo de agendamento suportado produzem `FAILED` com `PROVIDER_RETRY_AFTER_UNSUPPORTED`, evitando repetição antecipada. O Compose utiliza conexão de 1 segundo e leitura de 2 segundos. A reserva precisa exceder a duração máxima de uma chamada HTTP e a margem para atualizar o banco. Consulte os [requisitos e decisões arquiteturais](docs/requirements.md).
 
 O jitter reduz aleatoriamente o backoff calculado para 80–100% por padrão (`RETRY_JITTER_FACTOR=0.2`); zero desativa essa variação. `Retry-After` continua sendo o atraso mínimo aceito. O circuit breaker Resilience4j observa uma janela de 20 chamadas, mínimo de 10 e limiar de falhas de 50%; falhas transitórias e incertas contam, rejeições de negócio não. Ele abre por 10 segundos e permite duas sondagens em meio-aberto. Enquanto aberto, evita HTTP, devolve o trabalho a `PENDING` com atraso persistido e restitui a tentativa não utilizada. Os limites usam `CIRCUIT_BREAKER_*`; o estado do circuito é local a cada instância.
 
@@ -360,6 +374,8 @@ O mock exige `Idempotency-Key`. Seu histórico limitado de chamadas serve apenas
 ### Swagger e cenários Postman automatizados
 
 Com o Compose em execução, abra o [Swagger UI](http://localhost:8080/swagger-ui/index.html) ou o [documento OpenAPI](http://localhost:8080/v3/api-docs). O Compose habilita `API_DOCS_ENABLED=true` na demonstração local; a documentação fica desabilitada por padrão fora dela.
+
+No Swagger UI, selecione um **Exemplo automático**. A seleção inicia o cenário imediatamente: o executor gera identificadores novos, preenche o corpo, consulta a solicitação criada e verifica os retornos HTTP e o estado final esperado. O progresso e o JSON das respostas aparecem no mesmo painel. **Executar novamente** inicia uma nova execução; **Cancelar** interrompe as chamadas/consultas locais, mas não desfaz uma solicitação já persistida no servidor. As operações nativas do Swagger continuam disponíveis para chamadas manuais. O painel automático destina-se à demonstração local e não armazena credenciais nem tokens.
 
 Execute todos os cenários HTTP automaticamente, sem copiar identificadores:
 
@@ -391,7 +407,19 @@ Testes unitários ficam em `src/test/unit/java` e cobrem políticas, configuraç
 
 Use `./mvnw test` para unitários, `./mvnw -Dit.test='*IT' verify` para unitários e integração, `./mvnw -Dit.test='*E2E' verify` para unitários e end-to-end, e `./mvnw verify` para todas as camadas. No Windows, substitua `./mvnw` por `.\mvnw.cmd`.
 
-O [workflow de CI](.github/workflows/ci.yml) executa em `main`, `dev` e pull requests: Java 21, verificação Maven, validação do Compose, build da imagem, cenários Newman automatizados e publicação dos relatórios. As actions usam hashes de commit verificados e permissão mínima no repositório. O desenvolvimento ocorre em `dev`; mudanças validadas são promovidas para `main` com commits focados.
+Com Node.js 22 ou superior, utilize os comandos abaixo para validar os cenários automáticos do Swagger e a interação no navegador:
+
+```sh
+npm ci
+npm run test:unit
+npx playwright install chromium
+docker compose up -d --wait
+npm run test:e2e
+```
+
+`test:unit` executa `node --test src/test/unit/javascript/*.test.cjs` sem depender de um backend. Os testes de navegador usam uma sessão isolada do Chromium contra a aplicação do Compose; capturas e relatórios ficam em `target/swagger-e2e`. As dependências Node são exclusivas do desenvolvimento e da CI; a imagem de produção serve os scripts diretamente, sem build de frontend.
+
+O [workflow de CI](.github/workflows/ci.yml) executa em `main`, `dev` e pull requests: Java 21, Node.js 22, verificação Maven, testes unitários JavaScript, validação do Compose, build da imagem, interação no navegador, cenários Newman automatizados e publicação dos relatórios. As actions usam hashes de commit verificados e permissão mínima no repositório. O desenvolvimento ocorre em `dev`; mudanças validadas são promovidas para `main` com commits focados.
 
 ### Segurança e configuração
 
