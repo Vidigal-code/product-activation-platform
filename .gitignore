@@ -1,0 +1,8 @@
+/target/
+/.work/
+/.env
+/.idea/
+/.vscode/
+*.iml
+*.log
+/.secrets/
