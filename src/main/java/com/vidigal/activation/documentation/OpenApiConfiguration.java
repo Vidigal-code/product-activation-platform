@@ -26,10 +26,10 @@ public class OpenApiConfiguration {
     OpenAPI activationOpenApi() {
         return new OpenAPI().info(new Info().title("Product Activation Platform").version("v1")
                         .description("""
-                                Selecione um exemplo no POST e clique em Execute. A criação retorna 201 com id e Location;
-                                copie esse id para o GET e execute novamente para acompanhar o processamento assíncrono.
-                                Os exemplos estão preenchidos para o Docker Compose com WireMock. Para um novo ensaio,
-                                altere o externalId; repetir o mesmo conteúdo retorna 200, sem reprocessar.
+                                No painel de cenários, selecione um Exemplo automático; a execução começa imediatamente.
+                                O painel prepara os dados, envia as chamadas e acompanha o resultado, sem preencher campos.
+                                Os cenários estão prontos para o Docker Compose com WireMock e podem ser repetidos.
+                                Os endpoints abaixo também permitem explorar os exemplos e as respostas individualmente.
                                 Em modo local não é necessário token. Em produção, use JWT obtido por Client Credentials:
                                 escopo requests:write no POST e requests:read no GET.
                                 """))
@@ -55,7 +55,7 @@ public class OpenApiConfiguration {
             listing.getParameters().forEach(parameter -> configurePagination(parameter, pagination));
             api.getPaths().get(ActivationRequestController.PATH + "/{id}").getGet()
                     .summary("Consultar solicitação e processamento")
-                    .description("Copie o id recebido no POST. Consulte novamente até COMPLETED ou FAILED; falhas do provedor aparecem no estado, com HTTP 200.")
+                    .description("O painel de cenários consulta automaticamente o resultado. Os estados finais são COMPLETED ou FAILED; falhas do provedor aparecem no estado, com HTTP 200.")
                     .responses(ActivationApiResponses.lookup());
         };
     }

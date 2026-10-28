@@ -81,6 +81,10 @@ management:
         readiness:
           include: readinessState,db
 activation:
+  documentation:
+    poll-interval-ms: ${DOCS_POLL_INTERVAL_MS:500}
+    timeout-ms: ${DOCS_TIMEOUT_MS:60000}
+    request-timeout-ms: ${DOCS_REQUEST_TIMEOUT_MS:10000}
   circuit-breaker:
     sliding-window-size: ${CIRCUIT_BREAKER_WINDOW_SIZE:20}
     minimum-number-of-calls: ${CIRCUIT_BREAKER_MINIMUM_CALLS:10}

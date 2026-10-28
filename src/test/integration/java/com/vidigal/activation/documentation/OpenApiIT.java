@@ -23,7 +23,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {"activation.security.mode=local", "activation.worker.enabled=false",
-        "springdoc.api-docs.enabled=true", "springdoc.swagger-ui.enabled=true"})
+        "springdoc.api-docs.enabled=true", "springdoc.swagger-ui.enabled=true",
+        "activation.documentation.poll-interval-ms=750", "activation.documentation.timeout-ms=65000",
+        "activation.documentation.request-timeout-ms=9000", "activation.http.max-body-bytes=24576",
+        "activation.rate-limit.max-requests=400", "activation.rate-limit.window=45s", "activation.retry.max-attempts=4"})
 @AutoConfigureMockMvc
 @Import(PostgresTestConfiguration.class)
 class OpenApiIT {
@@ -128,6 +131,52 @@ class OpenApiIT {
         mvc.perform(get("/v3/api-docs/swagger-config")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.url").value("/v3/api-docs"))
                 .andExpect(jsonPath("$.tryItOutEnabled").value(true));
+    }
+
+    @Test
+    void servesTheScenarioPluginTogetherWithTheNativeSwaggerInitializer() throws Exception {
+        String initializer = mvc.perform(get("/swagger-ui/swagger-initializer.js"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        assertThat(initializer).contains("ActivationScenariosPlugin", "SwaggerUIBundle.plugins.DownloadUrl, ActivationScenariosPlugin",
+                "\"configUrl\" : \"/v3/api-docs/swagger-config\"", "\"persistAuthorization\" : false");
+    }
+
+    @Test
+    void publishesOperationalSettingsFromApplicationConfiguration() throws Exception {
+        JsonNode demo = specification().path("x-activation-demo");
+        assertThat(demo.path("path").asText()).isEqualTo("/api/v1/requests");
+        assertThat(demo.path("pollIntervalMs").asLong()).isEqualTo(750);
+        assertThat(demo.path("timeoutMs").asLong()).isEqualTo(65_000);
+        assertThat(demo.path("requestTimeoutMs").asLong()).isEqualTo(9_000);
+        assertThat(demo.path("maxBodyBytes").asInt()).isEqualTo(24_576);
+        assertThat(demo.path("rateLimitMaxRequests").asInt()).isEqualTo(400);
+        assertThat(demo.path("rateLimitWindowMs").asLong()).isEqualTo(45_000);
+        assertThat(demo.path("retryMaxAttempts").asInt()).isEqualTo(4);
+    }
+
+    @Test
+    void publishesSelfContainedExecutableScenarios() throws Exception {
+        JsonNode specification = specification();
+        JsonNode scenarios = specification.path("x-activation-demo").path("scenarios");
+        assertThat(scenarios.size()).isEqualTo(16);
+        assertThat(scenarios.path("sucesso").path("kind").asText()).isEqualTo("create");
+        assertThat(scenarios.path("sucesso").path("expectedStatus").asText()).isEqualTo("COMPLETED");
+        assertThat(scenarios.path("sucesso").path("expectedHttp").asInt()).isEqualTo(201);
+        assertThat(scenarios.path("sucesso").path("body")).isEqualTo(specification.at(
+                "/paths/~1api~1v1~1requests/post/requestBody/content/application~1json/examples/sucesso/value"));
+        assertThat(scenarios.path("repeticao").path("kind").asText()).isEqualTo("replay");
+        assertThat(scenarios.path("conflito").path("kind").asText()).isEqualTo("conflict");
+        assertThat(scenarios.path("erroNegocio").path("expectedFailureCode").asText()).isEqualTo("PROVIDER_HTTP_400");
+        assertThat(scenarios.path("timeout").path("expectedFailureCode").asText()).isEqualTo("PROVIDER_IO_UNCERTAIN");
+        assertThat(scenarios.path("validacao").path("body").path("externalId").asText()).isEmpty();
+        assertThat(scenarios.path("campoDesconhecido").path("kind").asText()).isEqualTo("invalid");
+        assertThat(scenarios.path("lookup").path("expectedHttp").asInt()).isEqualTo(200);
+        assertThat(scenarios.path("missing").path("expectedHttp").asInt()).isEqualTo(404);
+        assertThat(scenarios.path("invalidId").path("expectedHttp").asInt()).isEqualTo(400);
+        assertThat(scenarios.path("list").path("kind").asText()).isEqualTo("list");
+        assertThat(scenarios.path("oversized").path("expectedHttp").asInt()).isEqualTo(413);
+        assertThat(scenarios.path("rateLimit").path("expectedHttp").asInt()).isEqualTo(429);
     }
 
     @Test

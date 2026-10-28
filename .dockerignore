@@ -8,6 +8,7 @@
 .env.*
 !.env.example
 target
+node_modules
 docs
 README.md
 scripts

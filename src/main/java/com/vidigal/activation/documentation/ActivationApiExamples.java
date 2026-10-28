@@ -18,13 +18,13 @@ final class ActivationApiExamples {
         Map<String, Example> examples = new LinkedHashMap<>();
         Map<String, String> successfulRequest = request(SUCCESS_EXTERNAL_ID, SUCCESS_PRODUCT);
         examples.put("sucesso", new Example().summary("1. Criar ativação com sucesso")
-                .description("Execute primeiro: retorna 201. Copie o id da resposta e consulte GET até COMPLETED.")
+                .description("O painel registra com POST 201 e acompanha GET automaticamente até COMPLETED.")
                 .value(successfulRequest));
         examples.put("repeticao", new Example().summary("2. Repetir o mesmo conteúdo: 200")
-                .description("Execute após sucesso. Retorna a mesma solicitação, com seu estado atual, sem novo registro.")
+                .description("O painel cria uma solicitação e repete o mesmo conteúdo. Retorna o mesmo registro com 200, sem novo processamento.")
                 .value(successfulRequest));
         examples.put("conflito", new Example().summary("3. Reutilizar externalId com conteúdo diferente: 409")
-                .description("Execute após sucesso. O produto diferente torna o conteúdo conflitante.")
+                .description("O painel cria uma solicitação e reenvia seu externalId com outro produto, provocando 409.")
                 .value(request(SUCCESS_EXTERNAL_ID, "INTERNET-1000")));
         examples.put("erroNegocio", new Example().summary("Provedor 400: falha definitiva")
                 .description("POST retorna 201. No Compose, GET termina FAILED com PROVIDER_HTTP_400, sem repetição.")

@@ -24,8 +24,9 @@
         <argLine/>
         <sonar.projectKey>product-activation-platform</sonar.projectKey>
         <sonar.projectName>Product Activation Platform</sonar.projectName>
-        <sonar.sources>src/main,pom.xml,Dockerfile,docker-compose.yml,docker-compose.observability.yml,.github,infra,scripts,postman,README.md,docs,.mvn,mvnw,mvnw.cmd,.env.example,.dockerignore,.gitattributes,.gitignore</sonar.sources>
-        <sonar.tests>src/test/unit/java,src/test/integration/java,src/test/e2e/java</sonar.tests>
+        <sonar.sources>src/main,pom.xml,package.json,package-lock.json,Dockerfile,docker-compose.yml,docker-compose.observability.yml,.github,infra,scripts,postman,README.md,docs,.mvn,mvnw,mvnw.cmd,.env.example,.dockerignore,.gitattributes,.gitignore</sonar.sources>
+        <sonar.tests>src/test/unit/java,src/test/unit/javascript,src/test/integration/java,src/test/e2e/java,src/test/e2e/javascript</sonar.tests>
+        <sonar.javascript.lcov.reportPaths>${project.build.directory}/swagger-lcov.info</sonar.javascript.lcov.reportPaths>
         <sonar.junit.reportPaths>${project.build.directory}/surefire-reports,${project.build.directory}/failsafe-reports</sonar.junit.reportPaths>
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
