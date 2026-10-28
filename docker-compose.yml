@@ -1,0 +1,120 @@
+name: product-activation-platform
+
+services:
+  app:
+    build:
+      context: .
+    image: product-activation-platform:local
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-activation}
+      DATABASE_USERNAME: ${POSTGRES_USER:-activation}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Execute scripts/setup-local.ps1 ou scripts/setup-local.sh}
+      SECURITY_MODE: local
+      API_DOCS_ENABLED: "true"
+      PROVIDER_BASE_URL: http://wiremock:8080
+      PROVIDER_CONNECT_TIMEOUT: 1s
+      PROVIDER_READ_TIMEOUT: 2s
+      PROVIDER_IDEMPOTENCY_SUPPORTED: "false"
+      RETRY_MAX_ATTEMPTS: "3"
+      RETRY_INITIAL_DELAY: 1s
+      RETRY_MAX_DELAY: 30s
+      WORKER_POLL_INTERVAL: 1s
+      WORKER_LEASE_DURATION: 30s
+      REQUEST_MAX_BODY_BYTES: ${REQUEST_MAX_BODY_BYTES:-16384}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-300}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-1m}
+      RATE_LIMIT_CLEANUP_INTERVAL: ${RATE_LIMIT_CLEANUP_INTERVAL:-1m}
+      METRICS_REFRESH_INTERVAL: ${METRICS_REFRESH_INTERVAL:-10s}
+      SCHEDULING_POOL_SIZE: ${SCHEDULING_POOL_SIZE:-3}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      wiremock:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 1.0
+    stop_grace_period: 40s
+
+  postgres:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-activation}
+      POSTGRES_USER: ${POSTGRES_USER:-activation}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Execute scripts/setup-local.ps1 ou scripts/setup-local.sh}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    mem_limit: 512m
+
+  wiremock:
+    image: wiremock/wiremock:3.13.2
+    command: ["--disable-banner", "--max-request-journal-entries", "100"]
+    ports:
+      - "127.0.0.1:${PROVIDER_PORT:-8089}:8080"
+    volumes:
+      - ./infra/wiremock/mappings:/home/wiremock/mappings:ro
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/__admin/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    mem_limit: 384m
+
+  newman:
+    image: postman/newman:6.1.3@sha256:d9b5e780ead0026bbb37f3759cd7b10fc8a88cd4030c8266a7c5e343d75a5198
+    user: "10001:10001"
+    profiles: [test]
+    command:
+      - run
+      - /etc/newman/product-activation.postman_collection.json
+      - --environment
+      - /etc/newman/local.postman_environment.json
+      - --env-var
+      - baseUrl=http://app:8080
+      - --env-var
+      - requestsPerWindow=${RATE_LIMIT_MAX_REQUESTS:-300}
+      - --env-var
+      - maxRequestBodyBytes=${REQUEST_MAX_BODY_BYTES:-16384}
+      - --timeout-request
+      - "5000"
+      - --timeout-script
+      - "70000"
+      - --timeout
+      - "180000"
+      - --bail
+    volumes:
+      - ./postman:/etc/newman:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+
+volumes:
+  postgres-data:

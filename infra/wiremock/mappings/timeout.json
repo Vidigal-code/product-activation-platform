@@ -1,0 +1,33 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/provider/v1/activate",
+    "headers": {
+      "Idempotency-Key": {
+        "matches": ".+"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$.externalId"
+      },
+      {
+        "matchesJsonPath": "$.customerId"
+      },
+      {
+        "matchesJsonPath": "$[?(@.productCode == 'TIMEOUT')]"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "status": "ACTIVATED"
+    },
+    "fixedDelayMilliseconds": 5000
+  }
+}

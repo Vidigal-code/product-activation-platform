@@ -1,0 +1,16 @@
+.git
+.work
+.secrets
+.github
+.idea
+.vscode
+.env
+.env.*
+!.env.example
+target
+docs
+README.md
+scripts
+infra
+docker-compose.yml
+*.log
