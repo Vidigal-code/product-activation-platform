@@ -4,11 +4,11 @@ import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -16,9 +16,7 @@ import org.springframework.security.oauth2.jwt.BadJwtException;
 import java.time.Instant;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.context.annotation.Import;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,16 +31,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {
         "activation.security.mode=jwt", "activation.worker.enabled=false",
         "activation.security.issuer-uri=http://localhost:19090/issuer",
-        "activation.security.audience=product-activation-platform"
+        "activation.security.audience=product-activation-platform",
+        "activation.pagination.default-size=2", "activation.pagination.max-size=5",
+        "activation.pagination.max-page=2"
 })
 @AutoConfigureMockMvc
 @AutoConfigureObservability(tracing = false)
-@Testcontainers
+@Import(com.vidigal.activation.support.PostgresTestConfiguration.class)
 class SecurityApiIT {
 
-    @Container
-    @ServiceConnection
-    static final PostgreSQLContainer<?> DATABASE = new PostgreSQLContainer<>("postgres:17-alpine");
 
     @Autowired
     private MockMvc mvc;
@@ -179,8 +176,99 @@ class SecurityApiIT {
     }
 
     private static Jwt tokenWithScope(String scope) {
+        return tokenWithScope(scope, "integration-client");
+    }
+
+    @Test
+    void hidesRequestsOwnedByAnotherConsumer() throws Exception {
+        when(decoder.decode("owner-token")).thenReturn(tokenWithScope("requests:read requests:write", "owner-client"));
+        when(decoder.decode("other-token")).thenReturn(tokenWithScope("requests:read", "other-client"));
+        var creation = mvc.perform(post("/api/v1/requests").header("Authorization", "Bearer owner-token")
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"externalId":"owned-request","customerId":"CUST-1","productCode":"PRODUCT-1"}
+                                """))
+                .andExpect(status().isCreated()).andReturn().getResponse();
+
+        mvc.perform(get(creation.getHeader("Location")).header("Authorization", "Bearer owner-token"))
+                .andExpect(status().isOk());
+        mvc.perform(get(creation.getHeader("Location")).header("Authorization", "Bearer other-token"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("request-not-found"))
+                .andExpect(jsonPath("$.customerId").doesNotExist());
+    }
+
+    private static Jwt tokenWithScope(String scope, String consumerId) {
         return Jwt.withTokenValue("decoded-token").header("alg", "RS256")
-                .subject("integration-client").claim("scope", scope)
+                .subject(consumerId).claim("scope", scope)
                 .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(300)).build();
+    }
+
+    @Test
+    void rejectsAnotherConsumersReplayWithoutDisclosingTheExistingRequest() throws Exception {
+        when(decoder.decode("owner-token")).thenReturn(tokenWithScope("requests:write", "owner-client"));
+        when(decoder.decode("other-token")).thenReturn(tokenWithScope("requests:write", "other-client"));
+        String body = """
+                {"externalId":"owned-replay","customerId":"CUST-1","productCode":"PRODUCT-1"}
+                """;
+        mvc.perform(post("/api/v1/requests").header("Authorization", "Bearer owner-token")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated());
+
+        mvc.perform(post("/api/v1/requests").header("Authorization", "Bearer other-token")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("duplicate-request"))
+                .andExpect(jsonPath("$.id").doesNotExist())
+                .andExpect(jsonPath("$.customerId").doesNotExist());
+    }
+
+    @Test
+    void listsOnlyTheAuthenticatedConsumersRequestsWithFiltersAndStablePages() throws Exception {
+        when(decoder.decode("list-owner")).thenReturn(tokenWithScope("requests:read requests:write", "list-client"));
+        when(decoder.decode("list-other")).thenReturn(tokenWithScope("requests:read requests:write", "other-list-client"));
+        createFor("list-owner", "list-first", "MATCH");
+        createFor("list-owner", "list-second", "MATCH");
+        createFor("list-owner", "list-third", "MATCH");
+        createFor("list-owner", "list-unmatched", "OTHER");
+        createFor("list-other", "list-hidden", "MATCH");
+
+        mvc.perform(get("/api/v1/requests").header("Authorization", "Bearer list-owner")
+                        .param("customerId", "MATCH").param("status", "PENDING"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].externalId").value("list-first"))
+                .andExpect(jsonPath("$.items[1].externalId").value("list-second"))
+                .andExpect(jsonPath("$.page").value(0)).andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(3)).andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.hasNext").value(true));
+        mvc.perform(get("/api/v1/requests").header("Authorization", "Bearer list-owner")
+                        .param("customerId", "MATCH").param("status", "PENDING").param("page", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].externalId").value("list-third"))
+                .andExpect(jsonPath("$.hasNext").value(false));
+        mvc.perform(get("/api/v1/requests").header("Authorization", "Bearer list-owner")
+                        .param("status", "COMPLETED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    private void createFor(String token, String externalId, String customerId) throws Exception {
+        mvc.perform(post("/api/v1/requests").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"externalId":"%s","customerId":"%s","productCode":"PRODUCT-1"}
+                                """.formatted(externalId, customerId)))
+                .andExpect(status().isCreated());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"size,6", "page,3", "size,0", "page,-1", "status,INVALID", "customerId,invalid value"})
+    void rejectsInvalidOrExcessivePaginationParameters(String parameter, String value) throws Exception {
+        when(decoder.decode("query-token")).thenReturn(tokenWithScope("requests:read"));
+
+        mvc.perform(get("/api/v1/requests").header("Authorization", "Bearer query-token").param(parameter, value))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
 }

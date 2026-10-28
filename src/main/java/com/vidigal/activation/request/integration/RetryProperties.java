@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.Assert;
 
 @ConfigurationProperties("activation.retry")
-public record RetryProperties(int maxAttempts, Duration initialDelay, Duration maxDelay) {
+public record RetryProperties(int maxAttempts, Duration initialDelay, Duration maxDelay, double jitterFactor) {
 
     public RetryProperties {
         Assert.isTrue(maxAttempts > 0, "Maximum attempts must be positive");
@@ -13,5 +13,7 @@ public record RetryProperties(int maxAttempts, Duration initialDelay, Duration m
         Assert.notNull(maxDelay, "Maximum delay is required");
         Assert.isTrue(initialDelay.compareTo(Duration.ZERO) > 0, "Initial delay must be positive");
         Assert.isTrue(maxDelay.compareTo(initialDelay) >= 0, "Maximum delay must not be less than initial delay");
+        Assert.isTrue(Double.isFinite(jitterFactor) && jitterFactor >= 0 && jitterFactor < 1,
+                "Jitter factor must be finite and between zero inclusive and one exclusive");
     }
 }

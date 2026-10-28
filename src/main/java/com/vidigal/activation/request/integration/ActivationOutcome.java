@@ -8,6 +8,7 @@ public record ActivationOutcome(Kind kind, String code, Duration retryAfter) {
         SUCCESS,
         PERMANENT_FAILURE,
         TRANSIENT_FAILURE,
+        DEFERRED,
         UNCERTAIN
     }
 }

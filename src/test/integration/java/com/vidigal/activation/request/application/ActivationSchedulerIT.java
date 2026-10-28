@@ -36,10 +36,10 @@ class ActivationSchedulerIT {
         when(provider.activate(any())).thenReturn(new ActivationOutcome(
                 ActivationOutcome.Kind.SUCCESS, "PROVIDER_SUCCESS", Duration.ZERO));
         var registration = registrations.register(
-                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "INTERNET-500"), "scheduled-request");
+                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "INTERNET-500"), "scheduled-request", "local-demo");
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
-                assertThat(registrations.get(registration.request().getId()).getStatus())
+                assertThat(registrations.get(registration.request().getId(), "local-demo").getStatus())
                         .isEqualTo(ActivationStatus.COMPLETED));
     }
 }

@@ -20,12 +20,15 @@ spring:
     timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
   task:
     scheduling:
+      pool:
+        size: ${SCHEDULING_POOL_SIZE:3}
       shutdown:
         await-termination: true
         await-termination-period: ${SHUTDOWN_TIMEOUT:30s}
   jackson:
     deserialization:
       fail-on-unknown-properties: true
+      fail-on-trailing-tokens: true
 springdoc:
   api-docs:
     enabled: ${API_DOCS_ENABLED:false}
@@ -48,6 +51,18 @@ server:
   tomcat:
     connection-timeout: ${SERVER_CONNECTION_TIMEOUT:5s}
 management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLE_PROBABILITY:0.1}
+    propagation:
+      type: W3C
+  otlp:
+    tracing:
+      export:
+        enabled: ${OTLP_TRACING_ENABLED:false}
+      endpoint: ${OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      connect-timeout: ${OTLP_CONNECT_TIMEOUT:1s}
+      timeout: ${OTLP_TIMEOUT:3s}
   metrics:
     distribution:
       percentiles-histogram:
@@ -66,6 +81,24 @@ management:
         readiness:
           include: readinessState,db
 activation:
+  circuit-breaker:
+    sliding-window-size: ${CIRCUIT_BREAKER_WINDOW_SIZE:20}
+    minimum-number-of-calls: ${CIRCUIT_BREAKER_MINIMUM_CALLS:10}
+    failure-rate-threshold: ${CIRCUIT_BREAKER_FAILURE_THRESHOLD:50}
+    open-duration: ${CIRCUIT_BREAKER_OPEN_DURATION:10s}
+    half-open-calls: ${CIRCUIT_BREAKER_HALF_OPEN_CALLS:2}
+  http:
+    max-body-bytes: ${REQUEST_MAX_BODY_BYTES:16384}
+  observability:
+    refresh-interval: ${METRICS_REFRESH_INTERVAL:10s}
+  rate-limit:
+    cleanup-interval: ${RATE_LIMIT_CLEANUP_INTERVAL:1m}
+    max-requests: ${RATE_LIMIT_MAX_REQUESTS:300}
+    window: ${RATE_LIMIT_WINDOW:1m}
+  pagination:
+    default-size: ${REQUEST_PAGE_DEFAULT_SIZE:20}
+    max-size: ${REQUEST_PAGE_MAX_SIZE:100}
+    max-page: ${REQUEST_PAGE_MAX_NUMBER:10000}
   provider:
     base-url: ${PROVIDER_BASE_URL:http://localhost:8089}
     activation-path: ${PROVIDER_ACTIVATION_PATH:/provider/v1/activate}
@@ -74,6 +107,7 @@ activation:
     idempotency-supported: ${PROVIDER_IDEMPOTENCY_SUPPORTED:false}
     token: ${PROVIDER_TOKEN:}
   retry:
+    jitter-factor: ${RETRY_JITTER_FACTOR:0.2}
     max-attempts: ${RETRY_MAX_ATTEMPTS:3}
     initial-delay: ${RETRY_INITIAL_DELAY:1s}
     max-delay: ${RETRY_MAX_DELAY:30s}
@@ -86,6 +120,9 @@ activation:
     issuer-uri: ${JWT_ISSUER_URI:}
     audience: ${JWT_AUDIENCE:product-activation-platform}
 logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}
   level:
     org.hibernate.engine.jdbc.spi.SqlExceptionHelper: 'OFF'
   pattern:

@@ -5,11 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.api.Test;
 
 class RetryPolicyTest {
 
     private final RetryPolicy policy = new RetryPolicy(
-            new RetryProperties(5, Duration.ofSeconds(1), Duration.ofSeconds(30)));
+            new RetryProperties(5, Duration.ofSeconds(1), Duration.ofSeconds(30), 0));
 
     @ParameterizedTest
     @CsvSource({"1,0,1", "2,0,2", "3,0,4", "6,0,30", "2147483647,0,30", "1,17,17",
@@ -28,5 +29,15 @@ class RetryPolicyTest {
     void retriesOnlySafeFailuresWithinAttemptLimit(ActivationOutcome.Kind kind, int attempt,
             boolean idempotencySupported, boolean expected) {
         assertThat(policy.canRetry(kind, attempt, idempotencySupported)).isEqualTo(expected);
+    }
+
+    @Test
+    void spreadsBackoffWithBoundedJitterWithoutAnticipatingRetryAfter() {
+        RetryPolicy jittered = new RetryPolicy(new RetryProperties(5, Duration.ofSeconds(1), Duration.ofSeconds(30), 0.2),
+                () -> 1.0);
+
+        assertThat(jittered.delayAfter(3, Duration.ZERO)).isEqualTo(Duration.ofMillis(3200));
+        assertThat(jittered.delayAfter(10, Duration.ZERO)).isEqualTo(Duration.ofSeconds(24));
+        assertThat(jittered.delayAfter(3, Duration.ofSeconds(5))).isEqualTo(Duration.ofSeconds(5));
     }
 }

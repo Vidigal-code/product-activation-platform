@@ -41,6 +41,12 @@ public class ActivationRequest {
     @Column(nullable = false, length = 128, updatable = false)
     private String correlationId;
 
+    @Column(nullable = false, length = 255, updatable = false)
+    private String consumerId;
+
+    @Column(length = 55, updatable = false)
+    private String traceParent;
+
     @Column(nullable = false)
     private int attemptCount;
 
@@ -57,12 +63,14 @@ public class ActivationRequest {
     protected ActivationRequest() {
     }
 
-    public ActivationRequest(ActivationCommand command, String correlationId) {
+    public ActivationRequest(ActivationCommand command, String correlationId, String consumerId, String traceParent) {
         this.id = UUID.randomUUID();
         this.externalId = command.externalId();
         this.customerId = command.customerId();
         this.productCode = command.productCode();
         this.correlationId = correlationId;
+        this.consumerId = consumerId;
+        this.traceParent = traceParent;
         this.status = ActivationStatus.PENDING;
         this.createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
         this.updatedAt = createdAt;
@@ -77,6 +85,8 @@ public class ActivationRequest {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public String getCorrelationId() { return correlationId; }
+    public String getConsumerId() { return consumerId; }
+    public String getTraceParent() { return traceParent; }
     public int getAttemptCount() { return attemptCount; }
     public Instant getNextAttemptAt() { return nextAttemptAt; }
     public UUID getLeaseToken() { return leaseToken; }

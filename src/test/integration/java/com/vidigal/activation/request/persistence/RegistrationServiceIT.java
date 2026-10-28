@@ -4,6 +4,7 @@ import com.vidigal.activation.request.application.RegistrationService;
 import com.vidigal.activation.request.application.DuplicateRequestException;
 import com.vidigal.activation.request.domain.ActivationCommand;
 import com.vidigal.activation.request.domain.ActivationStatus;
+import com.vidigal.activation.observability.ActivationTracing;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -11,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -49,12 +51,15 @@ class RegistrationServiceIT {
     @Autowired
     private RegistrationService registrationService;
 
+    @MockitoBean
+    private ActivationTracing tracing;
+
     @Test
     void registersPendingRequestAndMakesItRetrievable() {
         var command = new ActivationCommand("creation-001", "customer-001", "product-001");
 
-        var registration = registrationService.register(command, "correlation-001");
-        var found = registrationService.get(registration.request().getId());
+        var registration = registrationService.register(command, "correlation-001", "local-demo");
+        var found = registrationService.get(registration.request().getId(), "local-demo");
 
         assertThat(registration.created()).isTrue();
         assertThat(found.getExternalId()).isEqualTo("creation-001");
@@ -68,9 +73,9 @@ class RegistrationServiceIT {
     @Test
     void returnsExistingRequestWhenSameContentIsRepeated() {
         var command = new ActivationCommand("repeated-001", "customer-001", "product-001");
-        var first = registrationService.register(command, "correlation-first");
+        var first = registrationService.register(command, "correlation-first", "local-demo");
 
-        var repeated = registrationService.register(command, "correlation-repeated");
+        var repeated = registrationService.register(command, "correlation-repeated", "local-demo");
 
         assertThat(repeated.created()).isFalse();
         assertThat(repeated.request().getId()).isEqualTo(first.request().getId());
@@ -80,10 +85,10 @@ class RegistrationServiceIT {
     @Test
     void rejectsAnExternalIdReusedWithDifferentContent() {
         var first = new ActivationCommand("conflict-001", "customer-001", "product-001");
-        registrationService.register(first, "correlation-001");
+        registrationService.register(first, "correlation-001", "local-demo");
         var changed = new ActivationCommand("conflict-001", "customer-002", "product-001");
 
-        assertThatThrownBy(() -> registrationService.register(changed, "correlation-002"))
+        assertThatThrownBy(() -> registrationService.register(changed, "correlation-002", "local-demo"))
                 .isInstanceOf(DuplicateRequestException.class);
     }
 
@@ -101,7 +106,7 @@ class RegistrationServiceIT {
                 futures.add(executor.submit(() -> {
                     ready.countDown();
                     assertThat(start.await(10, TimeUnit.SECONDS)).isTrue();
-                    return registrationService.register(command, "concurrent-correlation");
+                    return registrationService.register(command, "concurrent-correlation", "local-demo");
                 }));
             }
             assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();

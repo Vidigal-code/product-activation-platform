@@ -20,6 +20,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import java.time.Instant;
 import java.util.Date;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -81,6 +83,18 @@ class JwtDecoderIT {
         String token = token(claims().expirationTime(null).build());
 
         assertThatThrownBy(() -> decoder.decode(token)).isInstanceOf(JwtException.class);
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidSubjects")
+    void rejectsTokensWithoutABoundedConsumerIdentity(String subject) throws JOSEException {
+        String token = token(claims().subject(subject).build());
+
+        assertThatThrownBy(() -> decoder.decode(token)).isInstanceOf(JwtException.class);
+    }
+
+    static Stream<String> invalidSubjects() {
+        return Stream.of(null, "", " ", "a".repeat(256));
     }
 
     @ParameterizedTest

@@ -9,6 +9,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.http.HttpMethod;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import static com.vidigal.activation.request.api.ActivationRequestController.PATH;
 
 @Configuration(proxyBeanMethods = false)
@@ -21,7 +23,7 @@ public class SecurityConfiguration {
     @ConditionalOnProperty(name = "activation.security.mode", havingValue = SecurityProperties.JWT_MODE,
             matchIfMissing = true)
     SecurityFilterChain jwtSecurityFilterChain(HttpSecurity http, JwtDecoder decoder,
-            AuthenticationProblemHandler problems) throws Exception {
+            AuthenticationProblemHandler problems, RateLimitFilter rateLimit) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
                 .requestCache(AbstractHttpConfigurer::disable)
@@ -29,18 +31,19 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.GET, HEALTH_PATH).permitAll()
                         .requestMatchers(HttpMethod.POST, PATH).hasAuthority("SCOPE_requests:write")
-                        .requestMatchers(HttpMethod.GET, PATH + "/*").hasAuthority("SCOPE_requests:read")
+                        .requestMatchers(HttpMethod.GET, PATH, PATH + "/*").hasAuthority("SCOPE_requests:read")
                         .requestMatchers(HttpMethod.GET, METRICS_PATH).hasAuthority("SCOPE_monitoring:read")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(resource -> resource.jwt(jwt -> jwt.decoder(decoder))
                         .authenticationEntryPoint(problems).accessDeniedHandler(problems))
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(problems).accessDeniedHandler(problems))
+                .addFilterAfter(rateLimit, AuthorizationFilter.class)
                 .build();
     }
 
     @Bean
     @ConditionalOnProperty(name = "activation.security.mode", havingValue = SecurityProperties.LOCAL_MODE)
-    SecurityFilterChain localSecurityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain localSecurityFilterChain(HttpSecurity http, RateLimitFilter rateLimit) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
                 .requestCache(AbstractHttpConfigurer::disable)
@@ -49,6 +52,14 @@ public class SecurityConfiguration {
                         .requestMatchers(PATH, PATH + "/*", HEALTH_PATH, METRICS_PATH).permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .anyRequest().denyAll())
+                .addFilterAfter(rateLimit, AuthorizationFilter.class)
                 .build();
+    }
+
+    @Bean
+    FilterRegistrationBean<RateLimitFilter> rateLimitRegistration(RateLimitFilter filter) {
+        var registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 }

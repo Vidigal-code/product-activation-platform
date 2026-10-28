@@ -26,7 +26,9 @@ public class JwtDecoderConfiguration {
             decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
                     JwtValidators.createDefaultWithIssuer(properties.issuerUri()),
                     new JwtAudienceValidator(properties.audience()),
-                    new JwtClaimValidator<Instant>(JwtClaimNames.EXP, Objects::nonNull)));
+                    new JwtClaimValidator<Instant>(JwtClaimNames.EXP, Objects::nonNull),
+                    new JwtClaimValidator<String>(JwtClaimNames.SUB, subject -> subject != null && !subject.isBlank()
+                            && subject.length() <= ConsumerIdentity.MAX_CONSUMER_ID_LENGTH)));
             return decoder;
         });
     }

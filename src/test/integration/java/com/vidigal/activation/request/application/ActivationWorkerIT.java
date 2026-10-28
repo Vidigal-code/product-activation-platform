@@ -68,26 +68,43 @@ class ActivationWorkerIT {
     @Test
     void completesAnActivationAfterProviderSuccess() {
         var registration = registrations.register(
-                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "INTERNET-500"), "worker-success");
+                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "INTERNET-500"), "worker-success", "local-demo");
         when(provider.activate(any())).thenReturn(new ActivationOutcome(
                 ActivationOutcome.Kind.SUCCESS, "PROVIDER_SUCCESS", Duration.ZERO));
 
         assertThat(worker.processNext()).isTrue();
 
-        assertThat(registrations.get(registration.request().getId()).getStatus())
+        assertThat(registrations.get(registration.request().getId(), "local-demo").getStatus())
                 .isEqualTo(ActivationStatus.COMPLETED);
+    }
+
+    @Test
+    void defersAnOpenCircuitWithoutConsumingAnHttpAttempt() {
+        var registration = registrations.register(
+                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "INTERNET-500"), "circuit-open", "local-demo");
+        when(provider.activate(any())).thenReturn(new ActivationOutcome(
+                ActivationOutcome.Kind.DEFERRED, "PROVIDER_CIRCUIT_OPEN", Duration.ofSeconds(30)));
+
+        assertThat(worker.processNext()).isTrue();
+
+        var request = registrations.get(registration.request().getId(), "local-demo");
+        assertThat(request.getStatus()).isEqualTo(ActivationStatus.PENDING);
+        assertThat(request.getAttemptCount()).isZero();
+        assertThat(request.getNextAttemptAt()).isAfter(request.getUpdatedAt());
+        assertThat(worker.processNext()).isFalse();
+        assertThat(metrics.counter("activation.worker.results", "result", "DEFERRED").count()).isPositive();
     }
 
     @Test
     void endsBusinessFailuresWithoutRetrying() {
         var registration = registrations.register(
-                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "BUSINESS-ERROR"), "worker-failure");
+                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "BUSINESS-ERROR"), "worker-failure", "local-demo");
         when(provider.activate(any())).thenReturn(new ActivationOutcome(
                 ActivationOutcome.Kind.PERMANENT_FAILURE, "PROVIDER_HTTP_400", Duration.ZERO));
 
         worker.processNext();
 
-        var request = registrations.get(registration.request().getId());
+        var request = registrations.get(registration.request().getId(), "local-demo");
         assertThat(request.getStatus()).isEqualTo(ActivationStatus.FAILED);
         assertThat(request.getFailureCode()).isEqualTo("PROVIDER_HTTP_400");
         assertThat(worker.processNext()).isFalse();
@@ -96,26 +113,26 @@ class ActivationWorkerIT {
     @Test
     void retriesTransientFailuresAndEventuallyCompletes() {
         var registration = registrations.register(
-                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "TEMPORARY-ERROR"), "worker-retry");
+                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "TEMPORARY-ERROR"), "worker-retry", "local-demo");
         when(provider.activate(any())).thenReturn(
                 new ActivationOutcome(ActivationOutcome.Kind.TRANSIENT_FAILURE, "PROVIDER_HTTP_500", Duration.ZERO),
                 new ActivationOutcome(ActivationOutcome.Kind.SUCCESS, "PROVIDER_SUCCESS", Duration.ZERO));
 
         worker.processNext();
 
-        assertThat(registrations.get(registration.request().getId()).getStatus()).isEqualTo(ActivationStatus.PENDING);
+        assertThat(registrations.get(registration.request().getId(), "local-demo").getStatus()).isEqualTo(ActivationStatus.PENDING);
         await().atMost(Duration.ofSeconds(3)).pollInterval(Duration.ofMillis(20)).untilAsserted(() -> {
             worker.processNext();
-            assertThat(registrations.get(registration.request().getId()).getStatus())
+            assertThat(registrations.get(registration.request().getId(), "local-demo").getStatus())
                     .isEqualTo(ActivationStatus.COMPLETED);
         });
-        assertThat(registrations.get(registration.request().getId()).getAttemptCount()).isEqualTo(2);
+        assertThat(registrations.get(registration.request().getId(), "local-demo").getAttemptCount()).isEqualTo(2);
     }
 
     @Test
     void exposesProviderLatencyWithBoundedOutcomeLabels() {
         registrations.register(new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "INTERNET-500"),
-                "worker-metrics");
+                "worker-metrics", "local-demo");
         when(provider.activate(any())).thenReturn(new ActivationOutcome(
                 ActivationOutcome.Kind.SUCCESS, "PROVIDER_SUCCESS", Duration.ZERO));
 
@@ -129,30 +146,30 @@ class ActivationWorkerIT {
     @Test
     void stopsAfterTheConfiguredAttemptBudget() {
         var registration = registrations.register(
-                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "TEMPORARY-ERROR"), "worker-budget");
+                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "TEMPORARY-ERROR"), "worker-budget", "local-demo");
         when(provider.activate(any())).thenReturn(new ActivationOutcome(
                 ActivationOutcome.Kind.TRANSIENT_FAILURE, "PROVIDER_HTTP_500", Duration.ZERO));
 
         await().atMost(Duration.ofSeconds(3)).pollInterval(Duration.ofMillis(20)).untilAsserted(() -> {
             worker.processNext();
-            assertThat(registrations.get(registration.request().getId()).getStatus())
+            assertThat(registrations.get(registration.request().getId(), "local-demo").getStatus())
                     .isEqualTo(ActivationStatus.FAILED);
         });
 
-        assertThat(registrations.get(registration.request().getId()).getAttemptCount()).isEqualTo(3);
+        assertThat(registrations.get(registration.request().getId(), "local-demo").getAttemptCount()).isEqualTo(3);
         assertThat(worker.processNext()).isFalse();
     }
 
     @Test
     void doesNotResendAnUncertainActivationWithoutProviderIdempotency() {
         var registration = registrations.register(
-                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "TIMEOUT"), "worker-uncertain");
+                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "TIMEOUT"), "worker-uncertain", "local-demo");
         when(provider.activate(any())).thenReturn(new ActivationOutcome(
                 ActivationOutcome.Kind.UNCERTAIN, "PROVIDER_IO_UNCERTAIN", Duration.ZERO));
 
         worker.processNext();
 
-        var request = registrations.get(registration.request().getId());
+        var request = registrations.get(registration.request().getId(), "local-demo");
         assertThat(request.getStatus()).isEqualTo(ActivationStatus.FAILED);
         assertThat(request.getFailureCode()).isEqualTo("PROVIDER_IO_UNCERTAIN");
         assertThat(request.getAttemptCount()).isEqualTo(1);
@@ -162,7 +179,7 @@ class ActivationWorkerIT {
     @Test
     void callsProviderOutsideTheTransactionWithTheStoredCorrelationId() {
         registrations.register(new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "INTERNET-500"),
-                "worker-correlation");
+                "worker-correlation", "local-demo");
         when(provider.activate(any())).thenAnswer(invocation -> {
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
             assertThat(MDC.get(CorrelationIdFilter.MDC_KEY)).isEqualTo("worker-correlation");
@@ -177,12 +194,12 @@ class ActivationWorkerIT {
     @Test
     void recordsUnexpectedProviderErrorsAsUncertainWithoutExposingTheirMessage() {
         var registration = registrations.register(
-                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "INTERNET-500"), "worker-unexpected");
+                new ActivationCommand("EXT-" + UUID.randomUUID(), "CUST-001", "INTERNET-500"), "worker-unexpected", "local-demo");
         when(provider.activate(any())).thenThrow(new IllegalStateException("internal-sensitive-detail"));
 
         worker.processNext();
 
-        var request = registrations.get(registration.request().getId());
+        var request = registrations.get(registration.request().getId(), "local-demo");
         assertThat(request.getStatus()).isEqualTo(ActivationStatus.FAILED);
         assertThat(request.getFailureCode()).isEqualTo("PROVIDER_UNEXPECTED_ERROR");
         assertThat(worker.processNext()).isFalse();

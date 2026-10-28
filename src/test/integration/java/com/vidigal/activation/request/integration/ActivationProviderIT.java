@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.web.client.RestClient;
 
 class ActivationProviderIT {
 
@@ -62,6 +64,20 @@ class ActivationProviderIT {
                 .withRequestBody(equalToJson("""
                         {"externalId":"external-1","customerId":"customer-1","productCode":"product-1"}
                         """)));
+    }
+
+    @Test
+    void defersThroughTheCircuitWithoutSendingAnotherHttpRequest() {
+        provider.stubFor(post(ACTIVATION_PATH).willReturn(aResponse().withStatus(503)));
+        ActivationProvider client = client(Duration.ofSeconds(2));
+        client.activate(PAYLOAD);
+        client.activate(PAYLOAD);
+
+        ActivationOutcome deferred = client.activate(PAYLOAD);
+
+        assertThat(deferred.kind()).isEqualTo(ActivationOutcome.Kind.DEFERRED);
+        assertThat(deferred.code()).isEqualTo("PROVIDER_CIRCUIT_OPEN");
+        provider.verify(2, postRequestedFor(urlEqualTo(ACTIVATION_PATH)));
     }
 
     @ParameterizedTest
@@ -146,7 +162,9 @@ class ActivationProviderIT {
     }
 
     private ActivationProvider client(ProviderProperties properties) {
-        ActivationProvider client = new ActivationProvider(properties, CLOCK);
+        var circuit = new ProviderCircuitBreaker(new CircuitBreakerProperties(2, 2, 50, Duration.ofSeconds(30), 1),
+                CLOCK, new SimpleMeterRegistry());
+        ActivationProvider client = new ActivationProvider(properties, CLOCK, RestClient.builder(), circuit);
         clients.add(client);
         return client;
     }

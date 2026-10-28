@@ -5,7 +5,7 @@ import com.vidigal.activation.request.integration.ActivationPayload;
 import com.vidigal.activation.request.integration.ActivationProvider;
 import com.vidigal.activation.request.integration.ProviderProperties;
 import com.vidigal.activation.request.integration.RetryPolicy;
-import com.vidigal.activation.request.integration.RetryProperties;
+import com.vidigal.activation.observability.ActivationTracing;
 import com.vidigal.activation.request.persistence.ActivationQueue;
 import com.vidigal.activation.request.persistence.ReservedActivation;
 import com.vidigal.activation.web.CorrelationIdFilter;
@@ -25,36 +25,40 @@ public class ActivationWorker {
     private final ActivationProvider provider;
     private final WorkerProperties workerProperties;
     private final ProviderProperties providerProperties;
-    private final RetryProperties retryProperties;
+    private final ActivationTracing tracing;
     private final RetryPolicy retryPolicy;
     private final MeterRegistry metrics;
 
     public ActivationWorker(ActivationQueue queue, ActivationProvider provider, WorkerProperties workerProperties,
-            ProviderProperties providerProperties, RetryProperties retryProperties, RetryPolicy retryPolicy,
+            ProviderProperties providerProperties, ActivationTracing tracing, RetryPolicy retryPolicy,
             MeterRegistry metrics) {
         this.queue = queue;
         this.provider = provider;
         this.workerProperties = workerProperties;
         this.providerProperties = providerProperties;
-        this.retryProperties = retryProperties;
+        this.tracing = tracing;
         this.retryPolicy = retryPolicy;
         this.metrics = metrics;
     }
 
     public boolean processNext() {
-        var next = queue.reserve(workerProperties.leaseDuration(), retryProperties.maxAttempts(),
+        var next = queue.reserve(workerProperties.leaseDuration(), retryPolicy.maxAttempts(),
                 providerProperties.idempotencySupported());
         if (next.isEmpty()) {
             return false;
         }
         var reservation = next.orElseThrow();
+        tracing.runWithProcessingSpan(reservation.traceParent(), () -> process(reservation));
+        return true;
+    }
+
+    private void process(ReservedActivation reservation) {
         try (var context = MDC.putCloseable(CorrelationIdFilter.MDC_KEY, reservation.correlationId())) {
             var sample = Timer.start(metrics);
             var outcome = activate(reservation);
             sample.stop(metrics.timer("activation.provider.calls", "outcome", outcome.kind().name()));
             recordOutcome(reservation, outcome);
         }
-        return true;
     }
 
     private ActivationOutcome activate(ReservedActivation reservation) {
@@ -74,6 +78,9 @@ public class ActivationWorker {
         if (outcome.kind() == ActivationOutcome.Kind.SUCCESS) {
             updated = queue.complete(reservation);
             result = "COMPLETED";
+        } else if (outcome.kind() == ActivationOutcome.Kind.DEFERRED) {
+            updated = queue.defer(reservation, outcome.retryAfter());
+            result = "DEFERRED";
         } else if (retryPolicy.canRetry(outcome.kind(), reservation.attemptCount(),
                 providerProperties.idempotencySupported())) {
             updated = queue.retry(reservation,

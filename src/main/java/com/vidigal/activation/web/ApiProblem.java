@@ -14,7 +14,9 @@ public enum ApiProblem {
     DUPLICATE_REQUEST(HttpStatus.CONFLICT, "Solicitação conflitante", "O externalId já está associado a outro conteúdo."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno", "Não foi possível processar a solicitação."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Não autenticado", "Informe um token Bearer válido."),
-    FORBIDDEN(HttpStatus.FORBIDDEN, "Acesso negado", "O token não permite esta operação.");
+    FORBIDDEN(HttpStatus.FORBIDDEN, "Acesso negado", "O token não permite esta operação."),
+    RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Limite de chamadas excedido", "Aguarde o intervalo indicado em Retry-After."),
+    PAYLOAD_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "Corpo muito grande", "O corpo excede o limite permitido.");
 
     private final HttpStatus status;
     private final String title;
@@ -26,8 +28,12 @@ public enum ApiProblem {
         this.detail = detail;
     }
 
+    public String code() {
+        return name().toLowerCase(Locale.ROOT).replace('_', '-');
+    }
+
     public ProblemDetail create() {
-        String code = name().toLowerCase(Locale.ROOT).replace('_', '-');
+        String code = code();
         var problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setTitle(title);
         problem.setType(URI.create("urn:problem:" + code));

@@ -3,6 +3,7 @@ package com.vidigal.activation.request.persistence;
 import com.vidigal.activation.request.application.RegistrationService;
 import com.vidigal.activation.request.domain.ActivationCommand;
 import com.vidigal.activation.request.domain.ActivationStatus;
+import com.vidigal.activation.observability.ActivationTracing;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -29,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.when;
 
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=validate", showSql = false)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -59,6 +62,9 @@ class ActivationQueueIT {
     @Autowired
     private ActivationRequestRepository repository;
 
+    @MockitoBean
+    private ActivationTracing tracing;
+
     @BeforeEach
     void clearRequests() {
         repository.deleteAllInBatch();
@@ -67,37 +73,50 @@ class ActivationQueueIT {
     @Test
     void reservesAPendingRequestForOneWorker() {
         var registration = registrationService.register(
-                new ActivationCommand("queue-001", "customer-001", "product-001"), "correlation-001");
+                new ActivationCommand("queue-001", "customer-001", "product-001"), "correlation-001", "local-demo");
 
         var reserved = queue.reserve(LEASE, MAX_ATTEMPTS, true).orElseThrow();
 
         assertThat(reserved.requestId()).isEqualTo(registration.request().getId());
         assertThat(reserved.leaseToken()).isNotNull();
         assertThat(reserved.attemptCount()).isEqualTo(1);
-        assertThat(registrationService.get(reserved.requestId()).getStatus()).isEqualTo(ActivationStatus.PROCESSING);
+        assertThat(registrationService.get(reserved.requestId(), "local-demo").getStatus()).isEqualTo(ActivationStatus.PROCESSING);
         assertThat(queue.reserve(LEASE, MAX_ATTEMPTS, true)).isEmpty();
     }
 
     @Test
+    void preservesTheRequestTraceContextAcrossThePersistentQueue() {
+        String traceParent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+        when(tracing.currentTraceParent()).thenReturn(traceParent);
+        var created = registrationService.register(
+                new ActivationCommand("trace-persistence", "customer-001", "product-001"), "correlation", "local-demo");
+
+        var reserved = queue.reserve(LEASE, MAX_ATTEMPTS, true).orElseThrow();
+
+        assertThat(registrationService.get(created.request().getId(), "local-demo").getTraceParent()).isEqualTo(traceParent);
+        assertThat(reserved.traceParent()).isEqualTo(traceParent);
+    }
+
+    @Test
     void completesAReservationAndRejectsRepeatedTransitions() {
-        registrationService.register(new ActivationCommand("complete-001", "customer-001", "product-001"), "correlation");
+        registrationService.register(new ActivationCommand("complete-001", "customer-001", "product-001"), "correlation", "local-demo");
         var reserved = queue.reserve(LEASE, MAX_ATTEMPTS, true).orElseThrow();
 
         assertThat(queue.complete(reserved)).isTrue();
 
-        assertThat(registrationService.get(reserved.requestId()).getStatus()).isEqualTo(ActivationStatus.COMPLETED);
+        assertThat(registrationService.get(reserved.requestId(), "local-demo").getStatus()).isEqualTo(ActivationStatus.COMPLETED);
         assertThat(queue.complete(reserved)).isFalse();
         assertThat(queue.reserve(LEASE, MAX_ATTEMPTS, true)).isEmpty();
     }
 
     @Test
     void recordsAPermanentFailureWithoutReturningItToTheQueue() {
-        registrationService.register(new ActivationCommand("failed-001", "customer-001", "product-001"), "correlation");
+        registrationService.register(new ActivationCommand("failed-001", "customer-001", "product-001"), "correlation", "local-demo");
         var reserved = queue.reserve(LEASE, MAX_ATTEMPTS, true).orElseThrow();
 
         assertThat(queue.fail(reserved, "PROVIDER_REJECTED")).isTrue();
 
-        var failed = registrationService.get(reserved.requestId());
+        var failed = registrationService.get(reserved.requestId(), "local-demo");
         assertThat(failed.getStatus()).isEqualTo(ActivationStatus.FAILED);
         assertThat(failed.getFailureCode()).isEqualTo("PROVIDER_REJECTED");
         assertThat(queue.complete(reserved)).isFalse();
@@ -106,12 +125,12 @@ class ActivationQueueIT {
 
     @Test
     void persistsTheNextAttemptAndDoesNotRunItBeforeItsScheduledTime() {
-        registrationService.register(new ActivationCommand("retry-001", "customer-001", "product-001"), "correlation");
+        registrationService.register(new ActivationCommand("retry-001", "customer-001", "product-001"), "correlation", "local-demo");
         var reserved = queue.reserve(LEASE, MAX_ATTEMPTS, true).orElseThrow();
 
         assertThat(queue.retry(reserved, Duration.ofHours(1), "PROVIDER_UNAVAILABLE")).isTrue();
 
-        var deferred = registrationService.get(reserved.requestId());
+        var deferred = registrationService.get(reserved.requestId(), "local-demo");
         assertThat(deferred.getStatus()).isEqualTo(ActivationStatus.PENDING);
         assertThat(deferred.getNextAttemptAt()).isAfter(deferred.getUpdatedAt().plus(Duration.ofMinutes(59)));
         assertThat(deferred.getFailureCode()).isEqualTo("PROVIDER_UNAVAILABLE");
@@ -120,8 +139,24 @@ class ActivationQueueIT {
     }
 
     @Test
+    void defersUnattemptedWorkWithoutConsumingTheAttemptBudget() {
+        registrationService.register(new ActivationCommand("circuit-open", "customer-001", "product-001"), "correlation", "local-demo");
+        var reserved = queue.reserve(LEASE, MAX_ATTEMPTS, true).orElseThrow();
+
+        assertThat(queue.defer(reserved, Duration.ofHours(1))).isTrue();
+
+        var deferred = registrationService.get(reserved.requestId(), "local-demo");
+        assertThat(deferred.getStatus()).isEqualTo(ActivationStatus.PENDING);
+        assertThat(deferred.getAttemptCount()).isZero();
+        assertThat(deferred.getNextAttemptAt()).isAfter(deferred.getUpdatedAt().plus(Duration.ofMinutes(59)));
+        assertThat(deferred.getLeaseToken()).isNull();
+        assertThat(queue.defer(reserved, Duration.ofHours(1))).isFalse();
+        assertThat(queue.reserve(LEASE, MAX_ATTEMPTS, true)).isEmpty();
+    }
+
+    @Test
     void recoversAnExpiredLeaseAndFencesThePreviousWorker() {
-        registrationService.register(new ActivationCommand("recover-001", "customer-001", "product-001"), "correlation");
+        registrationService.register(new ActivationCommand("recover-001", "customer-001", "product-001"), "correlation", "local-demo");
         var expired = queue.reserve(Duration.ofMillis(100), MAX_ATTEMPTS, true).orElseThrow();
 
         var recovered = await().atMost(Duration.ofSeconds(3)).until(
@@ -133,54 +168,55 @@ class ActivationQueueIT {
         assertThat(queue.complete(expired)).isFalse();
         assertThat(queue.fail(expired, "STALE_FAILURE")).isFalse();
         assertThat(queue.retry(expired, Duration.ZERO, "STALE_RETRY")).isFalse();
+        assertThat(queue.defer(expired, Duration.ZERO)).isFalse();
         assertThat(queue.complete(recovered)).isTrue();
-        assertThat(registrationService.get(recovered.requestId()).getStatus()).isEqualTo(ActivationStatus.COMPLETED);
+        assertThat(registrationService.get(recovered.requestId(), "local-demo").getStatus()).isEqualTo(ActivationStatus.COMPLETED);
     }
 
     @Test
     void stopsExpiredWorkForReconciliationWhenProviderDoesNotSupportIdempotency() {
-        registrationService.register(new ActivationCommand("uncertain-001", "customer-001", "product-001"), "correlation");
+        registrationService.register(new ActivationCommand("uncertain-001", "customer-001", "product-001"), "correlation", "local-demo");
         var expired = queue.reserve(Duration.ofMillis(100), MAX_ATTEMPTS, false).orElseThrow();
 
         await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> {
             assertThat(queue.reserve(LEASE, MAX_ATTEMPTS, false)).isEmpty();
-            assertThat(registrationService.get(expired.requestId()).getStatus()).isEqualTo(ActivationStatus.FAILED);
+            assertThat(registrationService.get(expired.requestId(), "local-demo").getStatus()).isEqualTo(ActivationStatus.FAILED);
         });
 
-        assertThat(registrationService.get(expired.requestId()).getFailureCode()).isEqualTo("RESULT_UNKNOWN");
-        assertThat(registrationService.get(expired.requestId()).getAttemptCount()).isEqualTo(1);
+        assertThat(registrationService.get(expired.requestId(), "local-demo").getFailureCode()).isEqualTo("RESULT_UNKNOWN");
+        assertThat(registrationService.get(expired.requestId(), "local-demo").getAttemptCount()).isEqualTo(1);
         assertThat(queue.complete(expired)).isFalse();
     }
 
     @Test
     void stopsExpiredWorkAfterTheAttemptLimitEvenWithProviderIdempotency() {
-        registrationService.register(new ActivationCommand("exhausted-lease", "customer-001", "product-001"), "correlation");
+        registrationService.register(new ActivationCommand("exhausted-lease", "customer-001", "product-001"), "correlation", "local-demo");
         var expired = queue.reserve(Duration.ofMillis(100), 1, true).orElseThrow();
 
         await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> {
             assertThat(queue.reserve(LEASE, 1, true)).isEmpty();
-            assertThat(registrationService.get(expired.requestId()).getStatus()).isEqualTo(ActivationStatus.FAILED);
+            assertThat(registrationService.get(expired.requestId(), "local-demo").getStatus()).isEqualTo(ActivationStatus.FAILED);
         });
 
-        assertThat(registrationService.get(expired.requestId()).getFailureCode()).isEqualTo("RESULT_UNKNOWN");
+        assertThat(registrationService.get(expired.requestId(), "local-demo").getFailureCode()).isEqualTo("RESULT_UNKNOWN");
     }
 
     @Test
     void finalizesPendingWorkWhenTheAttemptLimitWasReduced() {
-        registrationService.register(new ActivationCommand("reduced-limit", "customer-001", "product-001"), "correlation");
+        registrationService.register(new ActivationCommand("reduced-limit", "customer-001", "product-001"), "correlation", "local-demo");
         var reserved = queue.reserve(LEASE, MAX_ATTEMPTS, true).orElseThrow();
         queue.retry(reserved, Duration.ZERO, "PROVIDER_UNAVAILABLE");
 
         assertThat(queue.reserve(LEASE, 1, true)).isEmpty();
 
-        var exhausted = registrationService.get(reserved.requestId());
+        var exhausted = registrationService.get(reserved.requestId(), "local-demo");
         assertThat(exhausted.getStatus()).isEqualTo(ActivationStatus.FAILED);
         assertThat(exhausted.getFailureCode()).isEqualTo("ATTEMPTS_EXHAUSTED");
     }
 
     @Test
     void concurrentWorkersReserveTheRequestExactlyOnce() throws Exception {
-        registrationService.register(new ActivationCommand("concurrent-workers", "customer-001", "product-001"), "correlation");
+        registrationService.register(new ActivationCommand("concurrent-workers", "customer-001", "product-001"), "correlation", "local-demo");
         int workers = 12;
         var ready = new CountDownLatch(workers);
         var start = new CountDownLatch(1);
@@ -208,14 +244,15 @@ class ActivationQueueIT {
 
     @Test
     void rejectsExpiredWorkersEvenBeforeAnotherWorkerReservesTheRequest() {
-        registrationService.register(new ActivationCommand("expired-token", "customer-001", "product-001"), "correlation");
+        registrationService.register(new ActivationCommand("expired-token", "customer-001", "product-001"), "correlation", "local-demo");
         var expired = queue.reserve(Duration.ofMillis(100), MAX_ATTEMPTS, true).orElseThrow();
-        var expiration = registrationService.get(expired.requestId()).getLeaseUntil();
+        var expiration = registrationService.get(expired.requestId(), "local-demo").getLeaseUntil();
         await().atMost(Duration.ofSeconds(3)).until(() -> expiration.isBefore(Instant.now().minusMillis(100)));
 
         assertThat(queue.complete(expired)).isFalse();
         assertThat(queue.fail(expired, "STALE_FAILURE")).isFalse();
         assertThat(queue.retry(expired, Duration.ZERO, "STALE_RETRY")).isFalse();
-        assertThat(registrationService.get(expired.requestId()).getStatus()).isEqualTo(ActivationStatus.PROCESSING);
+        assertThat(queue.defer(expired, Duration.ZERO)).isFalse();
+        assertThat(registrationService.get(expired.requestId(), "local-demo").getStatus()).isEqualTo(ActivationStatus.PROCESSING);
     }
 }

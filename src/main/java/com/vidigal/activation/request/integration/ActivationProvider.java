@@ -26,10 +26,13 @@ public class ActivationProvider implements AutoCloseable {
     private final RestClient restClient;
     private final Clock clock;
     private final String activationPath;
+    private final ProviderCircuitBreaker circuit;
 
-    public ActivationProvider(ProviderProperties properties, Clock clock) {
+    public ActivationProvider(ProviderProperties properties, Clock clock, RestClient.Builder clientBuilder,
+            ProviderCircuitBreaker circuit) {
         this.clock = clock;
         this.activationPath = properties.activationPath();
+        this.circuit = circuit;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(properties.connectTimeout())
                 .version(HttpClient.Version.HTTP_1_1)
@@ -37,7 +40,7 @@ public class ActivationProvider implements AutoCloseable {
                 .build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(properties.readTimeout());
-        this.restClient = RestClient.builder()
+        this.restClient = clientBuilder
                 .baseUrl(properties.baseUrl().toString())
                 .requestFactory(requestFactory)
                 .defaultHeaders(headers -> {
@@ -49,6 +52,10 @@ public class ActivationProvider implements AutoCloseable {
     }
 
     public ActivationOutcome activate(ActivationPayload payload) {
+        return circuit.execute(() -> callProvider(payload));
+    }
+
+    private ActivationOutcome callProvider(ActivationPayload payload) {
         try {
             return restClient.post()
                     .uri(activationPath)
