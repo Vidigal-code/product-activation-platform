@@ -9,6 +9,8 @@ Serviço de ativação de produtos com API REST, processamento persistente e Pos
 
 ### Purpose and scope
 
+[Read the documentation](https://vidigal-code.github.io/product-activation-platform/docs/), available in Portuguese, English and Spanish.
+
 Receive activation requests, keep their status and call an external provider. The implementation uses Java 21, Spring Boot 3.5.16, Spring MVC, Spring Data JPA/Hibernate, PostgreSQL 17, Flyway, Bean Validation and Maven Wrapper. Tests use JUnit 5, Mockito, Testcontainers and WireMock. Spring Boot manages compatible dependency versions; explicit overrides are listed in `pom.xml`.
 
 The required challenge scope is creation, lookup, duplicate prevention under concurrency, provider integration, safe errors, security design, tests, production analysis, Docker and execution instructions. Selected improvements include durable asynchronous processing, leases, stale-worker protection, JWT authorization, correlation, health checks, migrations and CI. The [requirements matrix](docs/requirements.md) separates required functionality from optional improvements.
@@ -95,7 +97,17 @@ The database `UNIQUE` constraint is the final authority for `externalId`. A fail
 
 `externalId` and `customerId` accept 1–100 characters; `productCode` accepts 1–80. Each starts with an ASCII letter or digit and then permits letters, digits, `.`, `_`, `:` and `-`. Whitespace is rejected rather than silently trimmed. Unknown JSON properties are rejected. Responses also expose an attempt count and a sanitized failure code when relevant. `X-Correlation-Id` accepts 1–64 letters, digits, `.`, `_` or `-`; invalid/missing values are replaced with a generated identifier.
 
-`GET /api/v1/requests?status=COMPLETED&customerId=CUST-10001&page=0&size=20` lists only the current consumer's requests. Filters are optional. The response contains `items`, `page`, `size`, `totalElements`, `totalPages` and `hasNext`; ordering is `createdAt ASC, id ASC`. Defaults are size 20, maximum size 100 and maximum page 10000, configured through `activation.pagination`. Bounded offset pagination avoids unbounded page sizes; deep-history workloads should evolve toward cursors and retention. Consumer/filter/order indexes support the list queries; verify actual plans before adding more indexes.
+`GET /api/v1/requests?status=COMPLETED&customerId=CUST-10001&page=0&size=20` lists only the current consumer's requests. Filters are optional. The response contains `items`, `page`, `size`, `totalElements`, `totalPages` and `hasNext`; ordering is `createdAt ASC, id ASC`. Defaults are size 20, maximum size 100 and maximum page 10000, configured through `activation.pagination`. Bounded offset pagination avoids unbounded page sizes; deep-history workloads should evolve toward cursors and retention.
+
+[Migration V2](src/main/resources/db/migration/V2__isolate_consumers_and_index_request_queries.sql) creates three listing indexes:
+
+| Index | Columns | Intended query |
+| --- | --- | --- |
+| `ix_activation_consumer_created` | `(consumer_id, created_at, id)` | Consumer's requests without an optional filter |
+| `ix_activation_consumer_status_created` | `(consumer_id, status, created_at, id)` | Consumer's requests filtered by status |
+| `ix_activation_consumer_customer_created` | `(consumer_id, customer_id, created_at, id)` | Consumer's requests filtered by customer |
+
+Equality predicates come first, followed by the stable ordering columns. This supports each access pattern without indexing every filter combination. When both optional filters are supplied, PostgreSQL may choose one access path and evaluate the remaining predicate; an optimal plan is not guaranteed. Verify representative query plans with `EXPLAIN (ANALYZE, BUFFERS)` in a controlled environment before adding another composite index, accounting for its storage and write cost. The separate `UNIQUE(external_id)` constraint protects deduplication.
 
 ### Processing and provider policy
 
@@ -112,7 +124,7 @@ Normal transitions are `PENDING → PROCESSING → COMPLETED/FAILED`. Retryable 
 | Timeout/connection ambiguity | Without provider idempotency, `FAILED` for reconciliation; with a verified idempotency contract, bounded retries |
 | Expired lease after worker failure | Without provider idempotency, stop uncertain work for reconciliation; with that contract, reclaim within the retry budget |
 
-Defaults are three attempts, 1-second initial delay, a 30-second backoff cap and a 30-second lease. A valid positive `Retry-After` is honored even beyond the backoff cap; malformed or negative values use normal backoff. Numeric values that exceed the supported scheduling range produce `FAILED` with `PROVIDER_RETRY_AFTER_UNSUPPORTED`, avoiding an early retry. Compose uses a 1-second connection timeout and a 2-second read timeout. The lease must exceed the maximum HTTP attempt duration plus the database update margin. See [requirements and architecture decisions](docs/requirements.md).
+Defaults are three attempts, 1-second initial delay, a 30-second backoff cap and a 30-second lease. A valid positive `Retry-After` is honored even beyond the backoff cap; malformed or negative values use normal backoff. Numeric values that exceed the supported scheduling range produce `FAILED` with `PROVIDER_RETRY_AFTER_UNSUPPORTED`, avoiding an early retry. Compose uses a 1-second connection timeout and a 2-second read timeout. The lease must exceed the maximum HTTP attempt duration plus the database update margin. See the [requirements](docs/requirements.md) and [architecture decision records](docs/adr/README.md).
 
 Retry jitter reduces calculated backoff randomly to 80–100% by default (`RETRY_JITTER_FACTOR=0.2`); zero disables it. `Retry-After` remains the minimum accepted delay. The Resilience4j circuit breaker observes a window of 20 calls, at least 10 calls and a 50% failure threshold; transient and uncertain failures count, while business rejections do not. It opens for 10 seconds, then permits two half-open probes. An open circuit avoids HTTP, returns work to `PENDING` with a persisted delay and restores its unused attempt budget. All limits are configurable through `CIRCUIT_BREAKER_*`; circuit state is local to each instance.
 
@@ -249,6 +261,8 @@ Future operational work includes an audited reconciliation interface, completion
 
 ### Objetivo e escopo
 
+[Leia a documentação](https://vidigal-code.github.io/product-activation-platform/docs/), disponível em português, inglês e espanhol.
+
 Receber solicitações de ativação, persistir seu estado e acionar um provedor externo. A solução utiliza Java 21, Spring Boot 3.5.16, Spring MVC, Spring Data JPA/Hibernate, PostgreSQL 17, Flyway, Bean Validation e Maven Wrapper. Os testes usam JUnit 5, Mockito, Testcontainers e WireMock. O Spring Boot gerencia versões compatíveis das dependências; versões explícitas estão em `pom.xml`.
 
 O escopo obrigatório compreende criação, consulta, prevenção de duplicidade concorrente, integração, erros seguros, segurança, testes, análise de produção, Docker e instruções. Os diferenciais selecionados incluem processamento assíncrono persistente, reservas com vencimento, proteção contra workers atrasados, autorização JWT, correlação, health checks, migrações e CI. A [matriz de requisitos](docs/requirements.md) distingue obrigações e melhorias opcionais.
@@ -335,7 +349,17 @@ A restrição `UNIQUE` do banco garante a unicidade de `externalId`. Uma inserç
 
 `externalId` e `customerId` aceitam de 1 a 100 caracteres; `productCode`, de 1 a 80. Todos começam com letra ASCII ou dígito e permitem letras, dígitos, `.`, `_`, `:` e `-` nas demais posições. Espaços são rejeitados, sem remoção silenciosa. Propriedades JSON desconhecidas são rejeitadas. A resposta também informa contador de tentativas e código de falha sanitizado, quando aplicável. `X-Correlation-Id` aceita de 1 a 64 letras, dígitos, `.`, `_` ou `-`; valores ausentes/inválidos são substituídos por um identificador gerado.
 
-`GET /api/v1/requests?status=COMPLETED&customerId=CUST-10001&page=0&size=20` lista somente solicitações do consumidor atual. Os filtros são opcionais. A resposta contém `items`, `page`, `size`, `totalElements`, `totalPages` e `hasNext`, ordenados por `createdAt ASC, id ASC`. Os padrões são tamanho 20, tamanho máximo 100 e página máxima 10000, configurados em `activation.pagination`. A paginação por offset é limitada; consultas de histórico profundo devem evoluir para cursores e retenção. Índices por consumidor/filtro/ordenação atendem às consultas; valide os planos reais antes de adicionar índices.
+`GET /api/v1/requests?status=COMPLETED&customerId=CUST-10001&page=0&size=20` lista somente solicitações do consumidor atual. Os filtros são opcionais. A resposta contém `items`, `page`, `size`, `totalElements`, `totalPages` e `hasNext`, ordenados por `createdAt ASC, id ASC`. Os padrões são tamanho 20, tamanho máximo 100 e página máxima 10000, configurados em `activation.pagination`. A paginação por offset é limitada; consultas de histórico profundo devem evoluir para cursores e retenção.
+
+A [migração V2](src/main/resources/db/migration/V2__isolate_consumers_and_index_request_queries.sql) cria três índices para a listagem:
+
+| Índice | Colunas | Consulta prevista |
+| --- | --- | --- |
+| `ix_activation_consumer_created` | `(consumer_id, created_at, id)` | Solicitações do consumidor sem filtro opcional |
+| `ix_activation_consumer_status_created` | `(consumer_id, status, created_at, id)` | Solicitações do consumidor filtradas por estado |
+| `ix_activation_consumer_customer_created` | `(consumer_id, customer_id, created_at, id)` | Solicitações do consumidor filtradas por cliente |
+
+Os predicados de igualdade vêm primeiro, seguidos pelas colunas da ordenação estável. Assim, cada padrão de acesso é apoiado sem indexar todas as combinações de filtros. Quando os dois filtros opcionais são informados, o PostgreSQL pode escolher um caminho de acesso e avaliar o predicado restante; não há garantia de plano ótimo. Verifique planos representativos com `EXPLAIN (ANALYZE, BUFFERS)` em ambiente controlado antes de criar outro índice composto, considerando seu custo de armazenamento e escrita. A restrição separada `UNIQUE(external_id)` protege contra duplicidade.
 
 ### Processamento e política de integração
 
@@ -352,7 +376,7 @@ O fluxo normal é `PENDING → PROCESSING → COMPLETED/FAILED`. Falhas repetív
 | Timeout/conexão com resultado incerto | Sem idempotência no provedor, `FAILED` para reconciliação; com contrato confirmado, repetição limitada |
 | Reserva vencida após falha do worker | Sem idempotência no provedor, interrompe trabalho incerto para reconciliação; com contrato, recupera dentro do limite de tentativas |
 
-Os padrões são três tentativas, intervalo inicial de 1 segundo, teto de backoff de 30 segundos e reserva de 30 segundos. Um `Retry-After` positivo válido é respeitado mesmo acima desse teto; valores malformados ou negativos utilizam o backoff normal. Valores numéricos que excedem o intervalo de agendamento suportado produzem `FAILED` com `PROVIDER_RETRY_AFTER_UNSUPPORTED`, evitando repetição antecipada. O Compose utiliza conexão de 1 segundo e leitura de 2 segundos. A reserva precisa exceder a duração máxima de uma chamada HTTP e a margem para atualizar o banco. Consulte os [requisitos e decisões arquiteturais](docs/requirements.md).
+Os padrões são três tentativas, intervalo inicial de 1 segundo, teto de backoff de 30 segundos e reserva de 30 segundos. Um `Retry-After` positivo válido é respeitado mesmo acima desse teto; valores malformados ou negativos utilizam o backoff normal. Valores numéricos que excedem o intervalo de agendamento suportado produzem `FAILED` com `PROVIDER_RETRY_AFTER_UNSUPPORTED`, evitando repetição antecipada. O Compose utiliza conexão de 1 segundo e leitura de 2 segundos. A reserva precisa exceder a duração máxima de uma chamada HTTP e a margem para atualizar o banco. Consulte os [requisitos](docs/requirements.md) e os [registros de decisão arquitetural](docs/adr/README.md).
 
 O jitter reduz aleatoriamente o backoff calculado para 80–100% por padrão (`RETRY_JITTER_FACTOR=0.2`); zero desativa essa variação. `Retry-After` continua sendo o atraso mínimo aceito. O circuit breaker Resilience4j observa uma janela de 20 chamadas, mínimo de 10 e limiar de falhas de 50%; falhas transitórias e incertas contam, rejeições de negócio não. Ele abre por 10 segundos e permite duas sondagens em meio-aberto. Enquanto aberto, evita HTTP, devolve o trabalho a `PENDING` com atraso persistido e restitui a tentativa não utilizada. Os limites usam `CIRCUIT_BREAKER_*`; o estado do circuito é local a cada instância.
 
