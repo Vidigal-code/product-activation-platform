@@ -1,0 +1,233 @@
+{
+  "routeDefaults": {
+    "RouteGuide": true
+  },
+  "routes-md": [
+    {
+      "id": 101,
+      "title": {
+        "pt": "Visão geral",
+        "en": "Overview",
+        "es": "Visión general"
+      },
+      "path": {
+        "pt": "gitpagedocs/docs/versions/1.0.0/pt/overview.md",
+        "en": "gitpagedocs/docs/versions/1.0.0/en/overview.md",
+        "es": "gitpagedocs/docs/versions/1.0.0/es/overview.md"
+      }
+    },
+    {
+      "id": 102,
+      "title": {
+        "pt": "Requisitos e entrega",
+        "en": "Requirements and delivery",
+        "es": "Requisitos y entrega"
+      },
+      "path": {
+        "pt": "gitpagedocs/docs/versions/1.0.0/pt/requirements.md",
+        "en": "gitpagedocs/docs/versions/1.0.0/en/requirements.md",
+        "es": "gitpagedocs/docs/versions/1.0.0/es/requirements.md"
+      }
+    },
+    {
+      "id": 103,
+      "title": {
+        "pt": "Execução local",
+        "en": "Local execution",
+        "es": "Ejecución local"
+      },
+      "path": {
+        "pt": "gitpagedocs/docs/versions/1.0.0/pt/quickstart.md",
+        "en": "gitpagedocs/docs/versions/1.0.0/en/quickstart.md",
+        "es": "gitpagedocs/docs/versions/1.0.0/es/quickstart.md"
+      }
+    },
+    {
+      "id": 104,
+      "title": {
+        "pt": "Contrato da API",
+        "en": "API contract",
+        "es": "Contrato de la API"
+      },
+      "path": {
+        "pt": "gitpagedocs/docs/versions/1.0.0/pt/api.md",
+        "en": "gitpagedocs/docs/versions/1.0.0/en/api.md",
+        "es": "gitpagedocs/docs/versions/1.0.0/es/api.md"
+      }
+    },
+    {
+      "id": 105,
+      "title": {
+        "pt": "Arquitetura e processamento",
+        "en": "Architecture and processing",
+        "es": "Arquitectura y procesamiento"
+      },
+      "path": {
+        "pt": "gitpagedocs/docs/versions/1.0.0/pt/architecture.md",
+        "en": "gitpagedocs/docs/versions/1.0.0/en/architecture.md",
+        "es": "gitpagedocs/docs/versions/1.0.0/es/architecture.md"
+      }
+    },
+    {
+      "id": 106,
+      "title": {
+        "pt": "Segurança",
+        "en": "Security",
+        "es": "Seguridad"
+      },
+      "path": {
+        "pt": "gitpagedocs/docs/versions/1.0.0/pt/security.md",
+        "en": "gitpagedocs/docs/versions/1.0.0/en/security.md",
+        "es": "gitpagedocs/docs/versions/1.0.0/es/security.md"
+      }
+    },
+    {
+      "id": 107,
+      "title": {
+        "pt": "Testes e exemplos",
+        "en": "Tests and examples",
+        "es": "Pruebas y ejemplos"
+      },
+      "path": {
+        "pt": "gitpagedocs/docs/versions/1.0.0/pt/testing.md",
+        "en": "gitpagedocs/docs/versions/1.0.0/en/testing.md",
+        "es": "gitpagedocs/docs/versions/1.0.0/es/testing.md"
+      }
+    },
+    {
+      "id": 108,
+      "title": {
+        "pt": "Operação e diagnóstico",
+        "en": "Operations and diagnosis",
+        "es": "Operación y diagnóstico"
+      },
+      "path": {
+        "pt": "gitpagedocs/docs/versions/1.0.0/pt/operations.md",
+        "en": "gitpagedocs/docs/versions/1.0.0/en/operations.md",
+        "es": "gitpagedocs/docs/versions/1.0.0/es/operations.md"
+      }
+    }
+  ],
+  "menus-header-md": [
+    {
+      "id": 101,
+      "pt": {
+        "title": "Visão geral",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/pt/overview.md"
+      },
+      "en": {
+        "title": "Overview",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/en/overview.md"
+      },
+      "es": {
+        "title": "Visión general",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/es/overview.md"
+      }
+    },
+    {
+      "id": 102,
+      "pt": {
+        "title": "Requisitos e entrega",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/pt/requirements.md"
+      },
+      "en": {
+        "title": "Requirements and delivery",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/en/requirements.md"
+      },
+      "es": {
+        "title": "Requisitos y entrega",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/es/requirements.md"
+      }
+    },
+    {
+      "id": 103,
+      "pt": {
+        "title": "Execução local",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/pt/quickstart.md"
+      },
+      "en": {
+        "title": "Local execution",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/en/quickstart.md"
+      },
+      "es": {
+        "title": "Ejecución local",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/es/quickstart.md"
+      }
+    },
+    {
+      "id": 104,
+      "pt": {
+        "title": "Contrato da API",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/pt/api.md"
+      },
+      "en": {
+        "title": "API contract",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/en/api.md"
+      },
+      "es": {
+        "title": "Contrato de la API",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/es/api.md"
+      }
+    },
+    {
+      "id": 105,
+      "pt": {
+        "title": "Arquitetura e processamento",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/pt/architecture.md"
+      },
+      "en": {
+        "title": "Architecture and processing",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/en/architecture.md"
+      },
+      "es": {
+        "title": "Arquitectura y procesamiento",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/es/architecture.md"
+      }
+    },
+    {
+      "id": 106,
+      "pt": {
+        "title": "Segurança",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/pt/security.md"
+      },
+      "en": {
+        "title": "Security",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/en/security.md"
+      },
+      "es": {
+        "title": "Seguridad",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/es/security.md"
+      }
+    },
+    {
+      "id": 107,
+      "pt": {
+        "title": "Testes e exemplos",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/pt/testing.md"
+      },
+      "en": {
+        "title": "Tests and examples",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/en/testing.md"
+      },
+      "es": {
+        "title": "Pruebas y ejemplos",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/es/testing.md"
+      }
+    },
+    {
+      "id": 108,
+      "pt": {
+        "title": "Operação e diagnóstico",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/pt/operations.md"
+      },
+      "en": {
+        "title": "Operations and diagnosis",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/en/operations.md"
+      },
+      "es": {
+        "title": "Operación y diagnóstico",
+        "path-click": "gitpagedocs/docs/versions/1.0.0/es/operations.md"
+      }
+    }
+  ]
+}

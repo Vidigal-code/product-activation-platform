@@ -1,0 +1,49 @@
+{
+  "site": {
+    "name": "Product Activation Platform",
+    "SiteHeaderName": "Product Activation Platform",
+    "docsVersion": "1.0.0",
+    "defaultLanguage": "pt",
+    "languages": { "pt": true, "en": true, "es": true },
+    "ThemeDefault": "oceanic-dark",
+    "ThemeModeDefault": "dark",
+    "HideThemeSelector": false,
+    "layoutsConfigPathOficial": true,
+    "layoutsConfigPathOficialUrl": "https://github.com/Vidigal-code/git-page-docs/blob/cd342928a6650a664d27d68a0c7184557a9291fd/gitpagelayouts/layoutsConfig.json",
+    "layoutsConfigPathTemplatesOficial": "https://github.com/Vidigal-code/git-page-docs/blob/cd342928a6650a664d27d68a0c7184557a9291fd/gitpagelayouts/templates",
+    "ProjectLink": "https://github.com/Vidigal-code/product-activation-platform",
+    "rendering": "https://vidigal-code.github.io/product-activation-platform/docs/",
+    "repositorySearchHome": false,
+    "AiChatEnabled": false,
+    "audioPlayerEnabled": false,
+    "audioAutoPlayOnLoad": false,
+    "audioTracks": [],
+    "ActiveNavigation": true,
+    "RouteGuide": true,
+    "FocusMode": true,
+    "nestedMenusEnabled": false,
+    "focusMode": {
+      "copyEnabled": true,
+      "downloadEnabled": true,
+      "sectionNavigationEnabled": true,
+      "documentNavigationEnabled": true
+    },
+    "accessibility": { "enabled": true, "narration": { "enabled": true } },
+    "backToTop": { "enabled": true, "minPageHeightViewports": 3 },
+    "FooterEnabled": true,
+    "FooterLinkName": "Product Activation Platform",
+    "FooterLinkUrl": "https://github.com/Vidigal-code/product-activation-platform",
+    "FooterDateMode": "browser"
+  },
+  "VersionControl": {
+    "versions": [
+      {
+        "id": "1.0.0",
+        "path": "gitpagedocs/docs/versions/1.0.0/config.json",
+        "ProjectLink": "https://github.com/Vidigal-code/product-activation-platform",
+        "branch": "main",
+        "source-viewer": false
+      }
+    ]
+  }
+}

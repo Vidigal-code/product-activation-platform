@@ -10,6 +10,7 @@
 target
 node_modules
 docs
+gitpagedocs
 README.md
 scripts
 infra
