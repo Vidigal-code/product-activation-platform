@@ -1,0 +1,11 @@
+{
+  "layouts": [
+    {
+      "id": "oceanic-dark",
+      "name": "Oceanic Dark",
+      "file": "templates/oceanic-dark.json",
+      "mode": "dark",
+      "supportsLightAndDarkModes": false
+    }
+  ]
+}

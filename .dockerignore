@@ -11,6 +11,7 @@ target
 node_modules
 docs
 gitpagedocs
+gitpagelayouts
 README.md
 scripts
 infra

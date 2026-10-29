@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'gitpagedocs/**'
+      - 'gitpagelayouts/**'
       - '.github/workflows/gitpagedocs-pages.yml'
   workflow_dispatch:
 
@@ -62,6 +63,7 @@ jobs:
         run: |
           rm -rf .gitpagedocs-runtime/gitpagedocs
           cp -R gitpagedocs .gitpagedocs-runtime/gitpagedocs
+          cp -R gitpagelayouts/. .gitpagedocs-runtime/gitpagelayouts/
           cp gitpagedocs/icon.svg .gitpagedocs-runtime/frontend/public/icon.svg
 
       - name: Instalar dependências do runtime
