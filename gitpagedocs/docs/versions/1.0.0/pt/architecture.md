@@ -4,6 +4,8 @@
 
 A solicitação gravada também representa a unidade de trabalho. O worker reserva linhas elegíveis com mecanismos de concorrência do PostgreSQL, incluindo `FOR UPDATE SKIP LOCKED`, e confirma a transação antes do HTTP.
 
+Na inserção, o Hibernate obtém do PostgreSQL os valores iniciais de `createdAt`, `updatedAt` e do campo interno `nextAttemptAt`. Reservas e novas tentativas usam o mesmo relógio do banco. Isso evita atraso artificial na elegibilidade de novas solicitações quando a JVM está com o relógio adiantado, sem migração de schema nem alteração de identificadores, estados ou contrato HTTP. Datas históricas não são corrigidas; mudanças no relógio do próprio PostgreSQL ainda podem afetar o agendamento e o vencimento das reservas.
+
 A reserva possui prazo e token de posse. A gravação do resultado acontece em outra transação e exige posse válida. Isso permite múltiplas instâncias e impede que um worker atrasado sobrescreva o resultado produzido após uma nova reserva.
 
 | Origem | Destino permitido | Uso |

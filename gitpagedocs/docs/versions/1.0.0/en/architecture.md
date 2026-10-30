@@ -6,6 +6,8 @@ The project is organized by feature. The request feature separates API DTOs/cont
 
 The persisted request also represents the unit of work. Creation commits `PENDING` before processing begins. Workers claim eligible rows atomically using PostgreSQL concurrency features, including `FOR UPDATE SKIP LOCKED`.
 
+During insertion, Hibernate obtains the initial `createdAt`, `updatedAt` and internal `nextAttemptAt` values from PostgreSQL. Claims and retries use the same database clock. This prevents an application JVM clock running ahead from artificially delaying new requests, without a schema migration or changes to identifiers, states or the HTTP contract. Historical timestamps are not corrected; changes to PostgreSQL's own clock can still affect scheduling and lease expiry.
+
 A claim records `PROCESSING`, a lease deadline and an ownership token. The claim transaction finishes before the HTTP call. A separate transaction records the outcome only if the token still owns an unexpired lease. This permits multiple instances and prevents a late worker from overwriting a result after another worker has acquired the request.
 
 | Current state | Allowed next state | Purpose |

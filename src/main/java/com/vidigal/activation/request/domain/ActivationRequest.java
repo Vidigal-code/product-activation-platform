@@ -7,9 +7,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import org.hibernate.annotations.CurrentTimestamp;
+import org.hibernate.annotations.SourceType;
+import org.hibernate.generator.EventType;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Entity
@@ -33,9 +35,11 @@ public class ActivationRequest {
     private ActivationStatus status;
 
     @Column(nullable = false, updatable = false)
+    @CurrentTimestamp(event = EventType.INSERT, source = SourceType.DB)
     private Instant createdAt;
 
     @Column(nullable = false)
+    @CurrentTimestamp(event = EventType.INSERT, source = SourceType.DB)
     private Instant updatedAt;
 
     @Column(nullable = false, length = 128, updatable = false)
@@ -50,6 +54,7 @@ public class ActivationRequest {
     @Column(nullable = false)
     private int attemptCount;
 
+    @CurrentTimestamp(event = EventType.INSERT, source = SourceType.DB)
     private Instant nextAttemptAt;
     private UUID leaseToken;
     private Instant leaseUntil;
@@ -72,9 +77,6 @@ public class ActivationRequest {
         this.consumerId = consumerId;
         this.traceParent = traceParent;
         this.status = ActivationStatus.PENDING;
-        this.createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
-        this.updatedAt = createdAt;
-        this.nextAttemptAt = createdAt;
     }
 
     public UUID getId() { return id; }

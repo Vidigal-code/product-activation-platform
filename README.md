@@ -113,6 +113,8 @@ Equality predicates come first, followed by the stable ordering columns. This su
 
 The request row also holds persistent work. A worker claims eligible rows atomically with PostgreSQL locking, commits, calls the provider outside the database transaction and records the outcome in a new transaction. A lease allows recovery after a crash. An ownership token protects against a late worker overwriting a newer result. Multiple instances share the same database without a separate queue.
 
+PostgreSQL generates the initial `createdAt`, `updatedAt` and internal `nextAttemptAt` values during insertion through Hibernate. Claims and retry scheduling also use the database clock, so an application JVM clock running ahead does not artificially postpone newly registered work. This change needs no schema migration and preserves identifiers, states and the HTTP contract. It does not rewrite historical timestamps or protect scheduling against changes to PostgreSQL's own clock.
+
 Normal transitions are `PENDING → PROCESSING → COMPLETED/FAILED`. Retryable failures return to `PENDING` with a persisted due time and attempt count. Terminal states cannot be restarted through the public API. A stable `Idempotency-Key` identifies each request at the provider; delivery is not guaranteed exactly once.
 
 | Provider result | Decision |
@@ -364,6 +366,8 @@ Os predicados de igualdade vêm primeiro, seguidos pelas colunas da ordenação 
 ### Processamento e política de integração
 
 A própria linha da solicitação representa o trabalho persistente. O worker reserva registros elegíveis atomicamente com locks do PostgreSQL, confirma a transação, chama o provedor fora dela e grava o resultado em nova transação. A reserva tem prazo de validade para recuperação após queda. Um token de posse impede que um worker atrasado sobrescreva o resultado de outro. Múltiplas instâncias compartilham o banco, dispensando uma fila adicional.
+
+O PostgreSQL gera os valores iniciais de `createdAt`, `updatedAt` e do campo interno `nextAttemptAt` durante a inserção, por meio do Hibernate. Reservas e agendamento de novas tentativas também usam o relógio do banco, evitando que um relógio adiantado na JVM adie artificialmente o trabalho recém-registrado. A mudança não exige migração de schema e preserva identificadores, estados e contrato HTTP. Ela não reescreve datas históricas nem protege o agendamento contra alterações no relógio do próprio PostgreSQL.
 
 O fluxo normal é `PENDING → PROCESSING → COMPLETED/FAILED`. Falhas repetíveis retornam a `PENDING`, mantendo contador de tentativas e próxima execução no banco. Estados terminais não são reiniciados pela API pública. Uma `Idempotency-Key` estável identifica a solicitação no provedor; não há promessa de execução exatamente uma vez.
 

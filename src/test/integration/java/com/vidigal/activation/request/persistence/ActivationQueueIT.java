@@ -31,6 +31,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=validate", showSql = false)
@@ -82,6 +84,26 @@ class ActivationQueueIT {
         assertThat(reserved.attemptCount()).isEqualTo(1);
         assertThat(registrationService.get(reserved.requestId(), "local-demo").getStatus()).isEqualTo(ActivationStatus.PROCESSING);
         assertThat(queue.reserve(LEASE, MAX_ATTEMPTS, true)).isEmpty();
+    }
+
+    @Test
+    void reservesNewRequestsImmediatelyWhenApplicationClockIsAhead() {
+        Instant advancedTime = Instant.now().plus(Duration.ofMinutes(5));
+        RegistrationService.Registration registration;
+        try (var applicationTime = mockStatic(Instant.class, CALLS_REAL_METHODS)) {
+            applicationTime.when(Instant::now).thenReturn(advancedTime);
+            registration = registrationService.register(
+                    new ActivationCommand("clock-ahead", "customer-001", "product-001"),
+                    "correlation-001", "local-demo");
+        }
+
+        var reserved = queue.reserve(LEASE, MAX_ATTEMPTS, true);
+
+        assertThat(reserved).isPresent();
+        assertThat(reserved.orElseThrow().requestId()).isEqualTo(registration.request().getId());
+        assertThat(registration.request().getCreatedAt()).isNotNull();
+        assertThat(registration.request().getUpdatedAt()).isEqualTo(registration.request().getCreatedAt());
+        assertThat(registration.request().getNextAttemptAt()).isEqualTo(registration.request().getCreatedAt());
     }
 
     @Test
