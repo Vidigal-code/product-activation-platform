@@ -52,9 +52,9 @@ PostgreSQL supplies both storage and coordination. No separate message broker or
 
 The documentation site is static. API and Swagger addresses beginning with `localhost` refer to the application running on your own computer.
 
-## Documentation navigation with GitPageDocs 0.0.25
+## Documentation navigation with GitPageDocs 0.0.26
 
-The options in this section require the GitPageDocs **0.0.25** runtime. This project's documentation version remains **1.0.0**. Updating text and configuration does not itself update the runtime deployed by the workflow.
+The options in this section require the GitPageDocs **0.0.26** runtime. This project's documentation version remains **1.0.0**. Updating text and configuration does not itself update the runtime deployed by the workflow.
 
 ### Tag-based contents
 
@@ -78,9 +78,9 @@ When validating on a phone, check the collapsed menu, touch targets, keyboard fo
 
 ## Documentation maintenance and local MCP
 
-The functional content above describes this project. Viewer configuration targets GitPageDocs **0.0.25**; it does not change the application version or the `1.0.0` documentation directory.
+The functional content above describes this project. Viewer configuration targets GitPageDocs **0.0.26**; it does not change the application version or the `1.0.0` documentation directory.
 
-With `@gitpagedocs/cli` 0.0.25 installed, run from this repository's root:
+With `@gitpagedocs/cli` 0.0.26 installed, run from this repository's root:
 
 ```sh
 gitpagedocs mcp start
@@ -94,7 +94,7 @@ Before publishing, validate JSON, paths for every language, the contents list an
 
 The `.github/workflows/gitpagedocs-pages.yml` workflow publishes documentation under `/docs` from `main`, using a runtime pinned to a commit and a root redirect. Preserve that path and action pins when updating the runtime; changes on another branch do not publish automatically.
 
-GitPageDocs 0.0.25 uses `performance.mode: "auto"` for theme effects: it moderately reduces density on desktop and uses a smaller budget below 768px while retaining the theme's layers. Hidden particles pause and resume the same phase when the width changes. To keep full density, merge `site.backgroundEffects.overrides.performance: { "mode": "full" }` into `gitpagedocs/config.json`; the same option is available in `site.backgroundEffects.themes[themeId].performance`. An explicit `layers` override keeps the complete count when no mode is set in the overrides. Select `"auto"` explicitly to apply the budget to custom layers too.
+GitPageDocs 0.0.26 uses `performance.mode: "auto"` for theme effects: it moderately reduces density on desktop and uses a smaller budget below 768px while retaining the theme's layers. Hidden particles pause and resume the same phase when the width changes. To keep full density, merge `site.backgroundEffects.overrides.performance: { "mode": "full" }` into `gitpagedocs/config.json`; the same option is available in `site.backgroundEffects.themes[themeId].performance`. An explicit `layers` override keeps the complete count when no mode is set in the overrides. Select `"auto"` explicitly to apply the budget to custom layers too.
 
 ## Fixed theme family and light/dark mode
 
@@ -106,4 +106,4 @@ Both entries in the layout catalog must enable `supportsLightAndDarkModes`, shar
 
 ## Desktop side-guide height
 
-On desktop screens wider than 1024 CSS pixels, the side guide ends after its last entry instead of stretching to the article height. Since 0.0.25, it can grow to the available viewport height below the header before its entries need internal scrolling. This side layout takes precedence over `TocScrollMaxHeightDesktop`; centered guides above the content and layouts at 1024 pixels and below retain their previous sizing rules. A small bar in the active entry's theme color follows the section marked while scrolling. The indicator uses the existing section tracking without continuous animation.
+On desktop screens wider than 1024 CSS pixels, the side guide ends after its last entry instead of stretching to the article height. Since 0.0.25, it can grow to the available viewport height below the header before its entries need internal scrolling. This side layout takes precedence over `TocScrollMaxHeightDesktop`; centered guides above the content and layouts at 1024 pixels and below retain their previous sizing rules. A small bar in the active entry's theme color follows the section marked while scrolling. The indicator uses the existing section tracking without continuous animation. In GitPageDocs 0.0.26, side guides have an extra 0.5rem of space below the header (8px at the default root font size) and retain 1rem below the card at the viewport limit. This adjustment applies only above 1024 CSS pixels; smaller layouts are unchanged.

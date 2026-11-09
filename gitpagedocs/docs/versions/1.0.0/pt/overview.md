@@ -21,9 +21,9 @@ Esta documentação estática descreve o serviço. Para utilizar a API e o Swagg
 
 [Requisitos e entrega](?lang=pt&menu=pt&id=102) · [Executar localmente](?lang=pt&menu=pt&id=103) · [Arquitetura](?lang=pt&menu=pt&id=105)
 
-## Navegação da documentação com GitPageDocs 0.0.25
+## Navegação da documentação com GitPageDocs 0.0.26
 
-As opções desta seção requerem o runtime GitPageDocs **0.0.25**. A versão documental deste projeto continua **1.0.0**. Atualizar o texto e a configuração não atualiza, por si só, o runtime publicado pelo workflow.
+As opções desta seção requerem o runtime GitPageDocs **0.0.26**. A versão documental deste projeto continua **1.0.0**. Atualizar o texto e a configuração não atualiza, por si só, o runtime publicado pelo workflow.
 
 ### Índice por tags
 
@@ -47,9 +47,9 @@ Ao validar em celular, confira o menu recolhido, alvos de toque, foco por teclad
 
 ## Manutenção da documentação e MCP local
 
-O conteúdo funcional acima descreve este projeto. A configuração do visualizador acompanha o GitPageDocs **0.0.25**; ela não altera a versão da aplicação nem o diretório documental `1.0.0`.
+O conteúdo funcional acima descreve este projeto. A configuração do visualizador acompanha o GitPageDocs **0.0.26**; ela não altera a versão da aplicação nem o diretório documental `1.0.0`.
 
-Com `@gitpagedocs/cli` 0.0.25 instalado, execute na raiz deste repositório:
+Com `@gitpagedocs/cli` 0.0.26 instalado, execute na raiz deste repositório:
 
 ```sh
 gitpagedocs mcp start
@@ -63,7 +63,7 @@ Antes de publicar, valide o JSON, os caminhos de todos os idiomas, o índice e o
 
 O workflow `.github/workflows/gitpagedocs-pages.yml` publica a documentação em `/docs` a partir de `main`, com runtime fixado por commit e redirecionamento na raiz. Preserve esse caminho e os pins de ações ao atualizar o runtime; alterações em outra branch não publicam automaticamente.
 
-O GitPageDocs 0.0.25 usa `performance.mode: "auto"` nos efeitos dos temas: reduz moderadamente a densidade no desktop e usa um orçamento menor abaixo de 768px, mantendo as camadas do tema. Partículas ocultas ficam pausadas e retomam a mesma fase ao mudar a largura. Para manter a densidade completa, mescle `site.backgroundEffects.overrides.performance: { "mode": "full" }` em `gitpagedocs/config.json`; a mesma opção pode ser definida em `site.backgroundEffects.themes[themeId].performance`. Um override explícito de `layers` mantém a contagem completa quando não há mode definido nos overrides. Use `"auto"` explicitamente para aplicar o orçamento também às camadas personalizadas.
+O GitPageDocs 0.0.26 usa `performance.mode: "auto"` nos efeitos dos temas: reduz moderadamente a densidade no desktop e usa um orçamento menor abaixo de 768px, mantendo as camadas do tema. Partículas ocultas ficam pausadas e retomam a mesma fase ao mudar a largura. Para manter a densidade completa, mescle `site.backgroundEffects.overrides.performance: { "mode": "full" }` em `gitpagedocs/config.json`; a mesma opção pode ser definida em `site.backgroundEffects.themes[themeId].performance`. Um override explícito de `layers` mantém a contagem completa quando não há mode definido nos overrides. Use `"auto"` explicitamente para aplicar o orçamento também às camadas personalizadas.
 
 ## Família de tema fixa e modo claro/escuro
 
@@ -75,4 +75,4 @@ As duas entradas do catálogo de layouts devem habilitar `supportsLightAndDarkMo
 
 ## Altura do guia lateral desktop
 
-Em telas desktop com mais de 1024 pixels CSS, o guia lateral termina após o último item, sem se estender até o fim do artigo. Desde a 0.0.25, ele pode crescer até a altura disponível da janela abaixo do cabeçalho antes de precisar de rolagem interna. Esse layout lateral tem prioridade sobre `TocScrollMaxHeightDesktop`; o guia centralizado acima do conteúdo e os layouts de até 1024 pixels mantêm suas regras anteriores de dimensionamento. Uma pequena barra na cor do item ativo acompanha a seção marcada durante a rolagem. O indicador usa o acompanhamento de seções existente, sem animação contínua.
+Em telas desktop com mais de 1024 pixels CSS, o guia lateral termina após o último item, sem se estender até o fim do artigo. Desde a 0.0.25, ele pode crescer até a altura disponível da janela abaixo do cabeçalho antes de precisar de rolagem interna. Esse layout lateral tem prioridade sobre `TocScrollMaxHeightDesktop`; o guia centralizado acima do conteúdo e os layouts de até 1024 pixels mantêm suas regras anteriores de dimensionamento. Uma pequena barra na cor do item ativo acompanha a seção marcada durante a rolagem. O indicador usa o acompanhamento de seções existente, sem animação contínua. No GitPageDocs 0.0.26, os guias laterais ganham mais 0.5rem de espaço abaixo do cabeçalho (8px com a fonte raiz padrão) e mantêm 1rem abaixo do cartão no limite da viewport. Esse ajuste vale somente acima de 1024 pixels CSS; os layouts menores são preservados.
