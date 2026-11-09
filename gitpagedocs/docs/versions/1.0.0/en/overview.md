@@ -52,9 +52,9 @@ PostgreSQL supplies both storage and coordination. No separate message broker or
 
 The documentation site is static. API and Swagger addresses beginning with `localhost` refer to the application running on your own computer.
 
-## Documentation navigation with GitPageDocs 0.0.23
+## Documentation navigation with GitPageDocs 0.0.24
 
-The options in this section require the GitPageDocs **0.0.23** runtime. This project's documentation version remains **1.0.0**. Updating text and configuration does not itself update the runtime deployed by the workflow.
+The options in this section require the GitPageDocs **0.0.24** runtime. This project's documentation version remains **1.0.0**. Updating text and configuration does not itself update the runtime deployed by the workflow.
 
 ### Tag-based contents
 
@@ -78,9 +78,9 @@ When validating on a phone, check the collapsed menu, touch targets, keyboard fo
 
 ## Documentation maintenance and local MCP
 
-The functional content above describes this project. Viewer configuration targets GitPageDocs **0.0.23**; it does not change the application version or the `1.0.0` documentation directory.
+The functional content above describes this project. Viewer configuration targets GitPageDocs **0.0.24**; it does not change the application version or the `1.0.0` documentation directory.
 
-With `@gitpagedocs/cli` 0.0.23 installed, run from this repository's root:
+With `@gitpagedocs/cli` 0.0.24 installed, run from this repository's root:
 
 ```sh
 gitpagedocs mcp start
@@ -94,4 +94,12 @@ Before publishing, validate JSON, paths for every language, the contents list an
 
 The `.github/workflows/gitpagedocs-pages.yml` workflow publishes documentation under `/docs` from `main`, using a runtime pinned to a commit and a root redirect. Preserve that path and action pins when updating the runtime; changes on another branch do not publish automatically.
 
-GitPageDocs 0.0.23 uses `performance.mode: "auto"` for theme effects: it moderately reduces density on desktop and uses a smaller budget below 768px while retaining the theme's layers. Hidden particles pause and resume the same phase when the width changes. To keep full density, merge `site.backgroundEffects.overrides.performance: { "mode": "full" }` into `gitpagedocs/config.json`; the same option is available in `site.backgroundEffects.themes[themeId].performance`. An explicit `layers` override keeps the complete count when no mode is set in the overrides. Select `"auto"` explicitly to apply the budget to custom layers too.
+GitPageDocs 0.0.24 uses `performance.mode: "auto"` for theme effects: it moderately reduces density on desktop and uses a smaller budget below 768px while retaining the theme's layers. Hidden particles pause and resume the same phase when the width changes. To keep full density, merge `site.backgroundEffects.overrides.performance: { "mode": "full" }` into `gitpagedocs/config.json`; the same option is available in `site.backgroundEffects.themes[themeId].performance`. An explicit `layers` override keeps the complete count when no mode is set in the overrides. Select `"auto"` explicitly to apply the budget to custom layers too.
+
+## Fixed theme family and light/dark mode
+
+`HideThemeSelector: true` hides the full theme picker and keeps the family selected by `ThemeDefault`. It still allows light/dark switching when that family has a valid pair. A different theme from the URL or browser storage cannot replace the fixed family.
+
+`ThemeModeDefault` is the initial fallback. A valid mode from `modetheme=light` or `modetheme=dark` in the URL, a saved mode, or the reader’s toggle can select light/dark within that family. The selected mode survives reloads and document navigation. On narrow screens, open Menu to reach the standard control. Without a valid pair, the control is omitted.
+
+Both entries in the layout catalog must enable `supportsLightAndDarkModes`, share the same nonempty `supportsLightAndDarkModesReference`, and declare opposite `mode` values (`light` and `dark`). This project uses the official paired catalog; keep its family and preferences when updating runtime or layout pins.

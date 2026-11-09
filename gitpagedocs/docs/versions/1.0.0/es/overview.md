@@ -21,9 +21,9 @@ Este sitio estático documenta el servicio. Para utilizar la API y Swagger, inic
 
 [Requisitos y entrega](?lang=es&menu=es&id=102) · [Ejecución local](?lang=es&menu=es&id=103) · [Arquitectura](?lang=es&menu=es&id=105)
 
-## Navegación de la documentación con GitPageDocs 0.0.23
+## Navegación de la documentación con GitPageDocs 0.0.24
 
-Las opciones de esta sección requieren el runtime GitPageDocs **0.0.23**. La versión documental de este proyecto sigue siendo **1.0.0**. Actualizar texto y configuración no actualiza por sí solo el runtime publicado por el workflow.
+Las opciones de esta sección requieren el runtime GitPageDocs **0.0.24**. La versión documental de este proyecto sigue siendo **1.0.0**. Actualizar texto y configuración no actualiza por sí solo el runtime publicado por el workflow.
 
 ### Índice por etiquetas
 
@@ -47,9 +47,9 @@ Al validar en un móvil, revise el menú contraído, las áreas táctiles, el fo
 
 ## Mantenimiento de la documentación y MCP local
 
-El contenido funcional anterior describe este proyecto. La configuración del visor corresponde a GitPageDocs **0.0.23**; no cambia la versión de la aplicación ni el directorio documental `1.0.0`.
+El contenido funcional anterior describe este proyecto. La configuración del visor corresponde a GitPageDocs **0.0.24**; no cambia la versión de la aplicación ni el directorio documental `1.0.0`.
 
-Con `@gitpagedocs/cli` 0.0.23 instalado, ejecute desde la raíz de este repositorio:
+Con `@gitpagedocs/cli` 0.0.24 instalado, ejecute desde la raíz de este repositorio:
 
 ```sh
 gitpagedocs mcp start
@@ -63,4 +63,12 @@ Antes de publicar, valide el JSON, las rutas de todos los idiomas, el índice y 
 
 El workflow `.github/workflows/gitpagedocs-pages.yml` publica la documentación en `/docs` desde `main`, con runtime fijado por commit y redirección en la raíz. Conserve esa ruta y los pins de las acciones al actualizar el runtime; los cambios en otra rama no se publican automáticamente.
 
-GitPageDocs 0.0.23 utiliza `performance.mode: "auto"` para los efectos de los temas: reduce moderadamente la densidad en escritorio y utiliza un presupuesto menor por debajo de 768px, conservando las capas del tema. Las partículas ocultas se pausan y retoman la misma fase al cambiar el ancho. Para mantener la densidad completa, combine `site.backgroundEffects.overrides.performance: { "mode": "full" }` con `gitpagedocs/config.json`; la misma opción está disponible en `site.backgroundEffects.themes[themeId].performance`. Un override explícito de `layers` conserva la cantidad completa cuando no se define mode en los overrides. Seleccione `"auto"` explícitamente para aplicar el presupuesto también a las capas personalizadas.
+GitPageDocs 0.0.24 utiliza `performance.mode: "auto"` para los efectos de los temas: reduce moderadamente la densidad en escritorio y utiliza un presupuesto menor por debajo de 768px, conservando las capas del tema. Las partículas ocultas se pausan y retoman la misma fase al cambiar el ancho. Para mantener la densidad completa, combine `site.backgroundEffects.overrides.performance: { "mode": "full" }` con `gitpagedocs/config.json`; la misma opción está disponible en `site.backgroundEffects.themes[themeId].performance`. Un override explícito de `layers` conserva la cantidad completa cuando no se define mode en los overrides. Seleccione `"auto"` explícitamente para aplicar el presupuesto también a las capas personalizadas.
+
+## Familia de tema fija y modo claro/oscuro
+
+`HideThemeSelector: true` oculta el selector completo de temas y mantiene la familia elegida por `ThemeDefault`. La alternancia claro/oscuro sigue disponible cuando esa familia tiene un par válido. Un tema diferente procedente de la URL o del almacenamiento del navegador no sustituye la familia fija.
+
+`ThemeModeDefault` es el valor inicial de respaldo. Un modo válido en `modetheme=light` o `modetheme=dark` de la URL, un modo guardado o el botón del lector puede seleccionar claro/oscuro dentro de esa familia. El modo elegido se conserva al recargar y navegar entre documentos. En pantallas estrechas, abra Menu para acceder al control estándar. Sin un par válido, el control no aparece.
+
+Las dos entradas del catálogo de layouts deben habilitar `supportsLightAndDarkModes`, compartir el mismo `supportsLightAndDarkModesReference` no vacío y declarar valores opuestos de `mode` (`light` y `dark`). Este proyecto utiliza el catálogo oficial con pares; conserve su familia y preferencias al actualizar los pins del runtime o de los layouts.
