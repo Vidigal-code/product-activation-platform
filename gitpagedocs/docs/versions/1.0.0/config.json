@@ -14,7 +14,13 @@
         "pt": "gitpagedocs/docs/versions/1.0.0/pt/overview.md",
         "en": "gitpagedocs/docs/versions/1.0.0/en/overview.md",
         "es": "gitpagedocs/docs/versions/1.0.0/es/overview.md"
-      }
+      },
+      "RouteguideBrand": true,
+      "RouteGuideTags": [
+        "h1",
+        "h2",
+        "h3"
+      ]
     },
     {
       "id": 102,
@@ -27,7 +33,13 @@
         "pt": "gitpagedocs/docs/versions/1.0.0/pt/requirements.md",
         "en": "gitpagedocs/docs/versions/1.0.0/en/requirements.md",
         "es": "gitpagedocs/docs/versions/1.0.0/es/requirements.md"
-      }
+      },
+      "RouteguideBrand": true,
+      "RouteGuideTags": [
+        "h1",
+        "h2",
+        "h3"
+      ]
     },
     {
       "id": 103,
@@ -40,7 +52,13 @@
         "pt": "gitpagedocs/docs/versions/1.0.0/pt/quickstart.md",
         "en": "gitpagedocs/docs/versions/1.0.0/en/quickstart.md",
         "es": "gitpagedocs/docs/versions/1.0.0/es/quickstart.md"
-      }
+      },
+      "RouteguideBrand": true,
+      "RouteGuideTags": [
+        "h1",
+        "h2",
+        "h3"
+      ]
     },
     {
       "id": 104,
@@ -53,7 +71,13 @@
         "pt": "gitpagedocs/docs/versions/1.0.0/pt/api.md",
         "en": "gitpagedocs/docs/versions/1.0.0/en/api.md",
         "es": "gitpagedocs/docs/versions/1.0.0/es/api.md"
-      }
+      },
+      "RouteguideBrand": true,
+      "RouteGuideTags": [
+        "h1",
+        "h2",
+        "h3"
+      ]
     },
     {
       "id": 105,
@@ -66,7 +90,13 @@
         "pt": "gitpagedocs/docs/versions/1.0.0/pt/architecture.md",
         "en": "gitpagedocs/docs/versions/1.0.0/en/architecture.md",
         "es": "gitpagedocs/docs/versions/1.0.0/es/architecture.md"
-      }
+      },
+      "RouteguideBrand": true,
+      "RouteGuideTags": [
+        "h1",
+        "h2",
+        "h3"
+      ]
     },
     {
       "id": 106,
@@ -79,7 +109,13 @@
         "pt": "gitpagedocs/docs/versions/1.0.0/pt/security.md",
         "en": "gitpagedocs/docs/versions/1.0.0/en/security.md",
         "es": "gitpagedocs/docs/versions/1.0.0/es/security.md"
-      }
+      },
+      "RouteguideBrand": true,
+      "RouteGuideTags": [
+        "h1",
+        "h2",
+        "h3"
+      ]
     },
     {
       "id": 107,
@@ -92,7 +128,13 @@
         "pt": "gitpagedocs/docs/versions/1.0.0/pt/testing.md",
         "en": "gitpagedocs/docs/versions/1.0.0/en/testing.md",
         "es": "gitpagedocs/docs/versions/1.0.0/es/testing.md"
-      }
+      },
+      "RouteguideBrand": true,
+      "RouteGuideTags": [
+        "h1",
+        "h2",
+        "h3"
+      ]
     },
     {
       "id": 108,
@@ -105,7 +147,13 @@
         "pt": "gitpagedocs/docs/versions/1.0.0/pt/operations.md",
         "en": "gitpagedocs/docs/versions/1.0.0/en/operations.md",
         "es": "gitpagedocs/docs/versions/1.0.0/es/operations.md"
-      }
+      },
+      "RouteguideBrand": true,
+      "RouteGuideTags": [
+        "h1",
+        "h2",
+        "h3"
+      ]
     }
   ],
   "menus-header-md": [

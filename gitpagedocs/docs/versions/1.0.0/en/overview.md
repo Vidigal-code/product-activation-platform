@@ -51,3 +51,47 @@ PostgreSQL supplies both storage and coordination. No separate message broker or
 | [Operations](?lang=en&menu=en&id=108) | Health, metrics, tracing, deployment and latency analysis |
 
 The documentation site is static. API and Swagger addresses beginning with `localhost` refer to the application running on your own computer.
+
+## Documentation navigation with GitPageDocs 0.0.23
+
+The options in this section require the GitPageDocs **0.0.23** runtime. This project's documentation version remains **1.0.0**. Updating text and configuration does not itself update the runtime deployed by the workflow.
+
+### Tag-based contents
+
+In `gitpagedocs/docs/versions/1.0.0/config.json`, each `routes-md` item uses `RouteguideBrand: true` and `RouteGuideTags: ["h1", "h2", "h3"]`. The contents list includes the first three heading levels; other headings remain in the document. Property names are case-sensitive.
+
+```json
+{ "RouteguideBrand": true, "RouteGuideTags": ["h1", "h2", "h3"] }
+```
+
+Omitting `RouteGuideTags` preserves the legacy behavior, from `h1` through `h6`. An empty list (`[]`) removes automatic tag entries; explicit markers configured in `markdownMarkers.items` can still populate the contents list.
+
+To include other elements, add tag names allowed by the sanitizer, such as `"p"`, `"blockquote"`, `"pre"`, `"table"`, `"img"`, `"details"` or `"summary"`. There is no wildcard: `"*"`, dangerous tags and invalid entries are ignored with a diagnostic. Including `p`, `li`, `div` or `span` may produce many entries; select only tags useful for reading.
+
+Labels use a title, alternative text or element text. Empty elements such as `br`, `hr`, `img` and `input` can use the tag name. Automatic IDs are stable, unique and scoped to each block. Use `markdownMarkers.items` to select an occurrence, supply a custom label or apply a specific highlight.
+
+### Scrolling, small screens and foldables
+
+With contents scrolling unlocked, the active entry is centered, including navigation through Previous/Next. The lock preserves the position selected manually in the contents list. This lets readers inspect another part of the list without automatic tracking repositioning it.
+
+When validating on a phone, check the collapsed menu, touch targets, keyboard focus, tables and horizontally scrollable code blocks. On foldable devices, repeat navigation folded and unfolded, in both orientations, and confirm the active entry remains accessible after the width changes. Use the pause control when animated effects are present and respect reduced-motion preferences.
+
+## Documentation maintenance and local MCP
+
+The functional content above describes this project. Viewer configuration targets GitPageDocs **0.0.23**; it does not change the application version or the `1.0.0` documentation directory.
+
+With `@gitpagedocs/cli` 0.0.23 installed, run from this repository's root:
+
+```sh
+gitpagedocs mcp start
+```
+
+The MCP client starts a stdio process; there is no HTTP port or `--cwd` option. Set the process working directory to the project root. `list_files`, `read_file` and the `project://readme` and `project://structure` resources inspect content without an external provider. `write_file` writes the complete target file after review.
+
+`update_documentation` calls a provider and only replaces the region between `gitpagedocs:start` and `gitpagedocs:end`; without those markers, it appends a region. Do not use that flow to automatically replace these complete pages. `validate_docs` is a provider review, not a deterministic check of every link. The `gitpagedocs docs` command updates README/CONTRIBUTING/SECURITY regions with standard GitPageDocs content; it does not update these project-specific pages.
+
+Before publishing, validate JSON, paths for every language, the contents list and links in the viewer. Publication uses the repository workflow; its runtime pin must be updated separately to an available release. Preserve existing menus, themes, icons, public paths and the documentation version.
+
+The `.github/workflows/gitpagedocs-pages.yml` workflow publishes documentation under `/docs` from `main`, using a runtime pinned to a commit and a root redirect. Preserve that path and action pins when updating the runtime; changes on another branch do not publish automatically.
+
+GitPageDocs 0.0.23 uses `performance.mode: "auto"` for theme effects: it moderately reduces density on desktop and uses a smaller budget below 768px while retaining the theme's layers. Hidden particles pause and resume the same phase when the width changes. To keep full density, merge `site.backgroundEffects.overrides.performance: { "mode": "full" }` into `gitpagedocs/config.json`; the same option is available in `site.backgroundEffects.themes[themeId].performance`. An explicit `layers` override keeps the complete count when no mode is set in the overrides. Select `"auto"` explicitly to apply the budget to custom layers too.
