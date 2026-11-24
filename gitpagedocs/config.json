@@ -4,13 +4,17 @@
     "SiteHeaderName": "Product Activation Platform",
     "docsVersion": "1.0.0",
     "defaultLanguage": "pt",
-    "languages": { "pt": true, "en": true, "es": true },
+    "languages": {
+      "pt": true,
+      "en": true,
+      "es": true
+    },
     "ThemeDefault": "oceanic-dark",
     "ThemeModeDefault": "dark",
     "HideThemeSelector": true,
     "layoutsConfigPathOficial": true,
-    "layoutsConfigPathOficialUrl": "https://github.com/Vidigal-code/git-page-docs/blob/8bb0294500751c9fd93acae2e609152d83051f5f/gitpagelayouts/layoutsConfig.json",
-    "layoutsConfigPathTemplatesOficial": "https://github.com/Vidigal-code/git-page-docs/blob/8bb0294500751c9fd93acae2e609152d83051f5f/gitpagelayouts/templates",
+    "layoutsConfigPathOficialUrl": "https://github.com/Vidigal-code/git-page-docs/blob/4f048bab15e3988021c9ffcf6e047528c6237431/gitpagelayouts/layoutsConfig.json",
+    "layoutsConfigPathTemplatesOficial": "https://github.com/Vidigal-code/git-page-docs/blob/4f048bab15e3988021c9ffcf6e047528c6237431/gitpagelayouts/templates",
     "ProjectLink": "https://github.com/Vidigal-code/product-activation-platform",
     "rendering": "https://vidigal-code.github.io/product-activation-platform/docs/",
     "repositorySearchHome": false,
@@ -28,8 +32,16 @@
       "sectionNavigationEnabled": true,
       "documentNavigationEnabled": true
     },
-    "accessibility": { "enabled": true, "narration": { "enabled": true } },
-    "backToTop": { "enabled": true, "minPageHeightViewports": 3 },
+    "accessibility": {
+      "enabled": true,
+      "narration": {
+        "enabled": true
+      }
+    },
+    "backToTop": {
+      "enabled": true,
+      "minPageHeightViewports": 3
+    },
     "FooterEnabled": true,
     "FooterLinkName": "Product Activation Platform",
     "FooterLinkUrl": "https://github.com/Vidigal-code/product-activation-platform",

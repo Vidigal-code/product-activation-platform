@@ -21,9 +21,9 @@ Este sitio estático documenta el servicio. Para utilizar la API y Swagger, inic
 
 [Requisitos y entrega](?lang=es&menu=es&id=102) · [Ejecución local](?lang=es&menu=es&id=103) · [Arquitectura](?lang=es&menu=es&id=105)
 
-## Navegación de la documentación con GitPageDocs 0.0.29
+## Navegación de la documentación con GitPageDocs 0.0.30
 
-Esta guía describe el runtime GitPageDocs **0.0.29**. La versión documental de este proyecto sigue siendo **1.0.0**. Actualizar texto y configuración no actualiza por sí solo el runtime publicado por el workflow.
+Esta guía describe el runtime GitPageDocs **0.0.30**. La versión documental de este proyecto sigue siendo **1.0.0**. Actualizar texto y configuración no actualiza por sí solo el runtime publicado por el workflow.
 
 ### Índice por etiquetas
 
@@ -47,9 +47,9 @@ Al validar en un móvil, revise el menú contraído, las áreas táctiles, el fo
 
 ## Mantenimiento de la documentación y MCP local
 
-El contenido funcional anterior describe este proyecto. La configuración del visor corresponde a GitPageDocs **0.0.29**; no cambia la versión de la aplicación ni el directorio documental `1.0.0`.
+El contenido funcional anterior describe este proyecto. La configuración del visor corresponde a GitPageDocs **0.0.30**; no cambia la versión de la aplicación ni el directorio documental `1.0.0`.
 
-Con `@gitpagedocs/cli` 0.0.29 instalado, ejecute desde la raíz de este repositorio:
+Con `@gitpagedocs/cli` 0.0.30 instalado, ejecute desde la raíz de este repositorio:
 
 ```sh
 gitpagedocs mcp start
@@ -63,7 +63,7 @@ Antes de publicar, valide el JSON, las rutas de todos los idiomas, el índice y 
 
 El workflow `.github/workflows/gitpagedocs-pages.yml` publica la documentación en `/docs` desde `main`, con runtime fijado por commit y redirección en la raíz. Conserve esa ruta y los pins de las acciones al actualizar el runtime; los cambios en otra rama no se publican automáticamente.
 
-GitPageDocs 0.0.29 utiliza `performance.mode: "auto"` para los efectos de los temas: reduce moderadamente la densidad en escritorio y utiliza un presupuesto menor por debajo de 768px, conservando las capas del tema. Las partículas ocultas se pausan y retoman la misma fase al cambiar el ancho. Para mantener la densidad completa, combine `site.backgroundEffects.overrides.performance: { "mode": "full" }` con `gitpagedocs/config.json`; la misma opción está disponible en `site.backgroundEffects.themes[themeId].performance`. Un override explícito de `layers` conserva la cantidad completa cuando no se define mode en los overrides. Seleccione `"auto"` explícitamente para aplicar el presupuesto también a las capas personalizadas.
+GitPageDocs 0.0.30 utiliza `performance.mode: "auto"` para los efectos de los temas: reduce moderadamente la densidad en escritorio y utiliza un presupuesto menor por debajo de 768px, conservando las capas del tema. Las partículas ocultas se pausan y retoman la misma fase al cambiar el ancho. Para mantener la densidad completa, combine `site.backgroundEffects.overrides.performance: { "mode": "full" }` con `gitpagedocs/config.json`; la misma opción está disponible en `site.backgroundEffects.themes[themeId].performance`. Un override explícito de `layers` conserva la cantidad completa cuando no se define mode en los overrides. Seleccione `"auto"` explícitamente para aplicar el presupuesto también a las capas personalizadas.
 
 ## Familia de tema fija y modo claro/oscuro
 
@@ -84,3 +84,11 @@ Desde 0.0.27, Código fuente limita su área de contenido a la altura disponible
 En 0.0.29, Anterior, Siguiente y Volver arriba quedan dentro de la tarjeta Markdown, después del contenido, con 8px de espacio en el flujo normal para no cubrir texto, tablas ni código. Los botones con iconos siguen el aspecto compacto de copiar, descargar y pantalla completa, con 36px en escritorio y controles táctiles preservados en móvil. Configura `site.documentNavigation.position` como `left`, `center` o `right`; el valor predeterminado es `center`. Los botones de los límites siguen deshabilitados, y `site.backToTop.enabled` y `minPageHeightViewports` todavía controlan la aparición de Volver arriba.
 
 El icono predeterminado del modo de enfoque es `LuScanEye`, distinto del icono de pantalla completa. Las opciones explícitas de icono o texto siguen disponibles en `site.icons.FocusMode`. Se conservan el foco por teclado, la preferencia de movimiento reducido, las traducciones y las reglas de acceso al contenido. Al cambiar la configuración, comprueba las tres alineaciones, el último párrafo y los límites de navegación en escritorio y móvil.
+
+## Archivos de código fuente y navegación del árbol en GitPageDocs 0.0.30
+
+Desde 0.0.30, Código fuente reconoce archivos UTF-16LE y UTF-16BE por su marca de orden de bytes (BOM). El visor elimina la marca inicial y conserva acentos, texto de alfabetos no latinos y emoji. Los archivos sin BOM de UTF-16 siguen decodificándose como UTF-8, incluidos los archivos UTF-8 con BOM. Esto corrige la visualización de archivos como un `.gitignore` en UTF-16 sin modificar el archivo del repositorio.
+
+El árbol de archivos permite desplazarse horizontal y verticalmente y muestra los nombres completos de archivos y carpetas. Al hacer clic en la fila de una carpeta se expanden o contraen sus elementos sin sustituir el archivo abierto ni cambiar la dirección actual. La lista central, las rutas de navegación y los resultados filtrados de carpetas siguen permitiendo navegar por los directorios. Comprueba nombres largos y carpetas con varios niveles en ambas direcciones de desplazamiento; abrir y cerrar una carpeta repetidamente debe conservar el archivo seleccionado y la dirección.
+
+El visor no intenta adivinar la codificación de archivos UTF-16 sin BOM ni añade rutas de Código fuente automáticamente. Donde esté configurada esta vista, abre un `.gitignore` UTF-16 válido desde la lista de directorios y comprueba que `node_modules/` sea legible. Comprueba también nombres o contenidos de archivo con acentos, emoji y la vuelta al directorio en escritorio y móvil. La versión documental sigue siendo `1.0.0`.

@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: Vidigal-code/git-page-docs
-          ref: 8bb0294500751c9fd93acae2e609152d83051f5f # v0.0.29
+          ref: 4f048bab15e3988021c9ffcf6e047528c6237431 # v0.0.30
           path: .gitpagedocs-runtime
           persist-credentials: false
 

@@ -52,9 +52,9 @@ PostgreSQL supplies both storage and coordination. No separate message broker or
 
 The documentation site is static. API and Swagger addresses beginning with `localhost` refer to the application running on your own computer.
 
-## Documentation navigation with GitPageDocs 0.0.29
+## Documentation navigation with GitPageDocs 0.0.30
 
-This guide describes the GitPageDocs **0.0.29** runtime. This project's documentation version remains **1.0.0**. Updating text and configuration does not itself update the runtime deployed by the workflow.
+This guide describes the GitPageDocs **0.0.30** runtime. This project's documentation version remains **1.0.0**. Updating text and configuration does not itself update the runtime deployed by the workflow.
 
 ### Tag-based contents
 
@@ -78,9 +78,9 @@ When validating on a phone, check the collapsed menu, touch targets, keyboard fo
 
 ## Documentation maintenance and local MCP
 
-The functional content above describes this project. Viewer configuration targets GitPageDocs **0.0.29**; it does not change the application version or the `1.0.0` documentation directory.
+The functional content above describes this project. Viewer configuration targets GitPageDocs **0.0.30**; it does not change the application version or the `1.0.0` documentation directory.
 
-With `@gitpagedocs/cli` 0.0.29 installed, run from this repository's root:
+With `@gitpagedocs/cli` 0.0.30 installed, run from this repository's root:
 
 ```sh
 gitpagedocs mcp start
@@ -94,7 +94,7 @@ Before publishing, validate JSON, paths for every language, the contents list an
 
 The `.github/workflows/gitpagedocs-pages.yml` workflow publishes documentation under `/docs` from `main`, using a runtime pinned to a commit and a root redirect. Preserve that path and action pins when updating the runtime; changes on another branch do not publish automatically.
 
-GitPageDocs 0.0.29 uses `performance.mode: "auto"` for theme effects: it moderately reduces density on desktop and uses a smaller budget below 768px while retaining the theme's layers. Hidden particles pause and resume the same phase when the width changes. To keep full density, merge `site.backgroundEffects.overrides.performance: { "mode": "full" }` into `gitpagedocs/config.json`; the same option is available in `site.backgroundEffects.themes[themeId].performance`. An explicit `layers` override keeps the complete count when no mode is set in the overrides. Select `"auto"` explicitly to apply the budget to custom layers too.
+GitPageDocs 0.0.30 uses `performance.mode: "auto"` for theme effects: it moderately reduces density on desktop and uses a smaller budget below 768px while retaining the theme's layers. Hidden particles pause and resume the same phase when the width changes. To keep full density, merge `site.backgroundEffects.overrides.performance: { "mode": "full" }` into `gitpagedocs/config.json`; the same option is available in `site.backgroundEffects.themes[themeId].performance`. An explicit `layers` override keeps the complete count when no mode is set in the overrides. Select `"auto"` explicitly to apply the budget to custom layers too.
 
 ## Fixed theme family and light/dark mode
 
@@ -115,3 +115,11 @@ Since 0.0.27, Source code limits its content area to the available viewport heig
 In 0.0.29, Previous, Next and Back to top sit inside the Markdown card after the content, with an 8px gap in the normal flow so they do not cover text, tables or code. Icon buttons follow the compact copy, download and fullscreen appearance, at 36px on desktop, while preserving mobile touch controls. Set `site.documentNavigation.position` to `left`, `center` or `right`; the default is `center`. Boundary buttons remain disabled, and `site.backToTop.enabled` and `minPageHeightViewports` still control whether Back to top appears.
 
 The default focus-mode icon is `LuScanEye`, visually distinct from fullscreen. Explicit icon or text settings remain supported through `site.icons.FocusMode`. Keyboard focus, reduced-motion preferences, language labels and content access rules are preserved. Check all three alignments, the final paragraph and document boundaries on desktop and mobile when changing the configuration.
+
+## Source files and tree navigation in GitPageDocs 0.0.30
+
+Since 0.0.30, Source code recognizes UTF-16LE and UTF-16BE files by their byte-order mark (BOM). The viewer removes the initial mark and preserves accents, non-Latin text and emoji. Files without a UTF-16 BOM continue through UTF-8 decoding, including UTF-8 files with a BOM. This fixes displays such as a UTF-16 `.gitignore` without changing the repository file.
+
+The Files tree supports horizontal and vertical scrolling and displays complete file and folder names. Clicking a folder row expands or collapses its children without replacing the open file or changing the current URL. The central directory listing, breadcrumbs and filtered folder results continue to navigate directories. Check long names and deeply nested folders in both scroll directions; repeatedly opening and closing a folder must preserve the selected file and URL.
+
+The viewer does not guess the encoding of UTF-16 files without a BOM or add Source code routes automatically. Where this view is configured, open a valid UTF-16 `.gitignore` through the directory list and check that `node_modules/` is readable. Also check an accented filename or file content, emoji and navigation back to the directory on desktop and mobile. The documentation version remains `1.0.0`.
